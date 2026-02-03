@@ -537,7 +537,7 @@ hook.Add("PostDrawOpaqueRenderables","stencil-test-holo",function()
 	render.SetStencilPassOperation( STENCIL_REPLACE )
 
 	-- Draw our entities. They will draw as normal
-	for _, ent in ipairs( player.GetAll() ) do
+	for _, ent in player.Iterator() do
 		ent:DrawModel()
 	end
 	

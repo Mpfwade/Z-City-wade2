@@ -150,7 +150,7 @@ end
 if SERVER then
     hook.Add("PostCleanupMap","huyhuygordonspasjizn",function(ent)
         timer.Simple(1,function()
-            for i,ent in ipairs(ents.GetAll()) do
+            for i, ent in ents.Iterator() do
                 if ent:GetClass() == "item_suitcharger" then
                     local entnew = ents.Create("prop_physics")
                     entnew:SetModel(ent:GetModel())

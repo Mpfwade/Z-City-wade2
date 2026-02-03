@@ -20,8 +20,6 @@ local surface_hardness = {
 	[MAT_GLASS] = 0.6,
 }
 
-local player_GetAll = player.GetAll
-
 local effect = {
 	[MAT_METAL] = {"metal",1},
 	[MAT_COMPUTER] = {"metal",1},

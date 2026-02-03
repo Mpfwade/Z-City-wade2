@@ -134,7 +134,7 @@ if SERVER then
 
         local targetNickPartial = string.lower(args[1]) 
         local target = nil
-        for _, player in ipairs(player.GetAll()) do
+        for _, player in player.Iterator() do
             if string.find(string.lower(player:Nick()), targetNickPartial) then 
                 target = player
                 break
@@ -181,7 +181,7 @@ if SERVER then
 
         local targetNickPartial = string.lower(args[1]) 
         local target = nil
-        for _, player in ipairs(player.GetAll()) do
+        for _, player in player.Iterator() do
             if string.find(string.lower(player:Nick()), targetNickPartial) then 
                 target = player
                 break

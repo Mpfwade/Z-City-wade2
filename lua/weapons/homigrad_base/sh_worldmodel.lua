@@ -74,6 +74,10 @@ hg.postureFuncWorldModel = {
 		if self:IsZoom() then return end
 		self.weaponAng[3] = self.weaponAng[3] + 20
 	end,
+	[9] = function(self,ply)
+		if self:IsZoom() then return end
+		self.weaponAng[3] = self.weaponAng[3] - 40
+	end,
 }
 SWEP.lerpaddcloseanim = 0
 SWEP.closeanimdis = 40
@@ -188,7 +192,7 @@ function SWEP:PosAngChanges(ply, desiredPos, desiredAng, bNoAdditional, closeani
 		
 	self.setrhik = true
 	self.setlhik = !self:IsPistolHoldType() or !ply.suiciding
-	self.setlhik = (not (ply.posture == 7 or ply.posture == 8 or ( (self:IsPistolHoldType() or self.CanEpicRun) and self:IsSprinting() and !(ply.organism and ply.organism.rarmamputated) ) or (self:IsPistolHoldType() and ply.suiciding) ) or self.reload and self.setlhik or false)
+	self.setlhik = (not (ply.posture == 7 or ply.posture == 8 or ( (self:IsPistolHoldType() or self.CanEpicRun) and self:IsSprinting() and !(ply.organism and ply.organism.rarmamputated) ) or (self:IsPistolHoldType() and ply.posture == 9) or (self:IsPistolHoldType() and ply.suiciding) ) or self.reload and self.setlhik or false)
 	self.setlhik = !(self:IsPistolHoldType() and (self:GetButtstockAttack() - CurTime() > -0.5)) and self.setlhik
 	
 	local tr = hg.eyeTrace(ply, 60, ent)

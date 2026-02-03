@@ -1384,7 +1384,8 @@ hg.postureFunctions2 = {
 		self.AdditionalAngPreLerp[3] = self.AdditionalAngPreLerp[3] - 4
 	end,
 	[2] = function(self,ply)
-		self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] - 4
+		local add = (hg.GunPositions[ply] and hg.GunPositions[ply][2]) or 0
+		self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] - 7 - add
 	end,
 	[3] = function(self,ply,force)
 		if self:IsZoom() and not force then return end
@@ -1419,13 +1420,26 @@ hg.postureFunctions2 = {
 	end,
 	[6] = function(self,ply)
 		if self:IsZoom() then return end
+		local add = (hg.GunPositions[ply] and hg.GunPositions[ply][2]) or 0
 		if self:IsPistolHoldType() then 
 			self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] - 2
-			self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + 6
+			self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + 6 - add
 		else
 			self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] - 2
 			self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] + -2
-			self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + 5
+			self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + 6 - add
+		end
+	end,
+	[9] = function(self,ply)
+		if self:IsZoom() and not force then return end
+		local add = (hg.GunPositions[ply] and hg.GunPositions[ply][3]) or 0
+		self.AdditionalPosPreLerp[3] = self.AdditionalPosPreLerp[3] + 3
+		if self:IsPistolHoldType() then
+			self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] + 14 - add
+			self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] + 1
+		else
+			self.AdditionalPosPreLerp[2] = self.AdditionalPosPreLerp[2] + 12 - add
+			self.AdditionalPosPreLerp[1] = self.AdditionalPosPreLerp[1] - 2
 		end
 	end,
 }
