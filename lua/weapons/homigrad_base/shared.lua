@@ -291,7 +291,7 @@ function SWEP:IsZoom()
 		(self:GetButtstockAttack() - CurTime() < -1) and 
 		(self:GetOwner():IsPlayer() and self:KeyDown(IN_ATTACK2) and not self:KeyDown(IN_SPEED)) and
 		!(self:IsSprinting() and !IsValid(owner.FakeRagdoll)) and
-		((IsValid(owner.FakeRagdoll) and self:KeyDown(IN_USE)) or
+		((IsValid(owner.FakeRagdoll) and (self:KeyDown(IN_USE) or hg.RagdollCombatInUse(owner))) or
 		(owner:IsOnGround() or owner:InVehicle())) and 
 		not owner.suiciding and !(owner.organism and (owner.organism.larm and !self:IsPistolHoldType())
 		and owner.organism.rarm and (owner.organism.larm > 0.99 or owner.organism.rarm > 0.99))
@@ -1868,7 +1868,7 @@ function SWEP:InUse()
 		return false
 	end
 
-	return ( (not ply.InVehicle || !ply:InVehicle()) && self:KeyDown(IN_USE)) || (ply.InVehicle && ply:InVehicle() && not self:KeyDown(IN_USE)) || (self.reload and self.reload > 0) || (IsValid(ply.OldRagdoll))
+	return ( ((not ply.InVehicle || !ply:InVehicle()) and !hg.RagdollCombatInUse(ply)) && self:KeyDown(IN_USE)) || ((ply.InVehicle && ply:InVehicle() or hg.RagdollCombatInUse(ply) or ent == ply) && not self:KeyDown(IN_USE)) || (self.reload and self.reload > 0) || (IsValid(ply.OldRagdoll))
 end
 
 local veczero = Vector(0, 0, 0)

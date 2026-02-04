@@ -573,6 +573,7 @@ hg.ConVars = hg.ConVars or {}
 		local prev_on_ground,current_on_ground,speedPrevious,speed = false,false,0,0
 		local angle_hitground = Angle(0,0,0)
 		hook.Add("Think", "CP_detectland", function()
+			if IsValid(lply.FakeRagdoll) then return end
 			prev_on_ground = current_on_ground
 			current_on_ground = LocalPlayer():OnGround()
 
@@ -877,6 +878,13 @@ local IsValid = IsValid
 	end
 --//
 --\\ DrawPlayerRagdoll
+	local hg_ragdollcombat = ConVarExists("hg_ragdollcombat") and GetConVar("hg_ragdollcombat") or CreateConVar("hg_ragdollcombat", 0, FCVAR_REPLICATED, "ragdoll combat", 0, 1)
+	
+	function hg.RagdollCombatInUse(ply)
+		return hg_ragdollcombat:GetBool() and IsValid(ply.FakeRagdoll)
+	end
+	
+	local hg_firstperson_ragdoll = ConVarExists("hg_firstperson_ragdoll") and GetConVar("hg_firstperson_ragdoll") or CreateConVar("hg_firstperson_ragdoll", 0, FCVAR_ARCHIVE, "first person ragdoll", 0, 1)
 	local hg_gopro = ConVarExists("hg_gopro") and GetConVar("hg_gopro") or CreateClientConVar("hg_gopro", "0", true, false, "gopro camera", 0, 1)
 
 	local vector_full = Vector(1, 1, 1)
@@ -938,7 +946,7 @@ local IsValid = IsValid
 		--if !current:IsEqualTol(wawanted, 0.01) then
 			--ent:ManipulateBoneScale(lkp, wawanted)
 			local mat = ent:GetBoneMatrix(lkp)
-			if not hg_gopro:GetBool() then
+			if !hg_gopro:GetBool() and (ent == ply or (!hg_ragdollcombat:GetBool() or hg_firstperson_ragdoll:GetBool())) then
 				mat:SetScale(wawanted)
 			end
 			--angfuck[3] = -GetViewPunchAngles2()[2] - GetViewPunchAngles3()[2]
@@ -1519,7 +1527,7 @@ local IsValid = IsValid
 			return
 		end
 
-		if IsValid(ply.FakeRagdoll) or IsValid(ply:GetNWEntity("FakeRagdollOld")) then
+		if !hg.RagdollCombatInUse(ply) and (IsValid(ply.FakeRagdoll) or IsValid(ply:GetNWEntity("FakeRagdollOld"))) then
 			if IsValid(ply.FakeRagdoll) then
 				cmd:SetForwardMove(0)
 				cmd:SetSideMove(0)
@@ -1975,6 +1983,8 @@ local IsValid = IsValid
 			end
 		end
 
+		hook_Run("HG_PlayerFootstep_Notify", ply, pos, foot, sound, volume, rf)	--; Do not return anything from this _Notify hook
+		
 		local Hook = hook_Run("HG_PlayerFootstep", ply, pos, foot, sound, volume, rf)
 
 		if Hook then return Hook end
@@ -2703,7 +2713,6 @@ hg.ColdMaps = {
     game.AddParticles( "particles/gf2_firework_small_01.pcf" )
 --//
 --\\ Fun commands
-	local hg_ragdollcombat = ConVarExists("hg_ragdollcombat") and GetConVar("hg_ragdollcombat") or CreateConVar("hg_ragdollcombat", 0, FCVAR_REPLICATED, "ragdoll combat", 0, 1)
 	local hg_thirdperson = ConVarExists("hg_thirdperson") and GetConVar("hg_thirdperson") or CreateConVar("hg_thirdperson", 0, FCVAR_REPLICATED, "thirdperson combat", 0, 1)
 --//
 --\\ Explosion Trace

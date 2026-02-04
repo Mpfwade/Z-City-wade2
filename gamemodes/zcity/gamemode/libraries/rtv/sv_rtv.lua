@@ -180,6 +180,10 @@ function zb.EndRTV()
         winmap = mappull[math.random(#mappull)]
     end
 
+	if not winmap then
+		winmap = "gm_construct"
+	end
+
     local mapFamily = GetMapFamily(winmap)
     
     mapPopularity[winmap] = math.min((mapPopularity[winmap] or 0) + 5, 100)

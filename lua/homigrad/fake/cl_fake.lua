@@ -139,9 +139,8 @@ end)
 fakeTimer = fakeTimer or nil
 local hg_cshs_fake = ConVarExists("hg_cshs_fake") and GetConVar("hg_cshs_fake") or CreateConVar("hg_cshs_fake", 0, FCVAR_ARCHIVE, "fake from cshs", 0, 1)
 local hg_firstperson_death = ConVarExists("hg_firstperson_death") and GetConVar("hg_firstperson_death") or CreateConVar("hg_firstperson_death", 0, FCVAR_ARCHIVE, "first person death", 0, 1)
+local hg_firstperson_ragdoll = ConVarExists("hg_firstperson_ragdoll") and GetConVar("hg_firstperson_ragdoll") or CreateConVar("hg_firstperson_ragdoll", 0, FCVAR_ARCHIVE, "first person ragdoll", 0, 1)
 local hg_fov = ConVarExists("hg_fov") and GetConVar("hg_fov") or CreateClientConVar("hg_fov", "70", true, false, "changes fov to value", 75, 100)
-
-local hg_ragdollcombat = ConVarExists("hg_ragdollcombat") and GetConVar("hg_ragdollcombat") or CreateConVar("hg_ragdollcombat", 0, FCVAR_REPLICATED, "ragdoll combat", 0, 1)
 
 local k = 0
 local wepPosLerp = Vector(0,0,0)
@@ -258,7 +257,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 
 	hg.cam_things(ply, view, angleZero)
 	
-	if hg_ragdollcombat:GetBool() or (fakeTimer and fakeTimer > CurTime()) then
+	if hg.RagdollCombatInUse(ply) or (fakeTimer and fakeTimer > CurTime()) then
 		if hg_firstperson_death:GetBool() then
 			deathlerp = LerpFT(0.05,deathlerp,1)
 			local angdeath = LerpAngle(deathlerp,deathLocalAng,att_Ang)
@@ -277,13 +276,19 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 			lerpasad = Lerp(0.1, lerpasad, (IsAimingNoScope(ply) and 0 or 1))
 
 			local ang = ply:EyeAngles()
-			local tr = {}
-			tr.start = pos
-			tr.endpos = pos - ang:Forward() * 60 * lerpasad + ang:Right() * 15 * lerpasad
-			tr.filter = {ply,follow}
-			tr.mask = MASK_SOLID
+			
+			if !hg_firstperson_ragdoll:GetBool() then
+				local tr = {}
+				tr.start = pos
+				tr.endpos = pos - ang:Forward() * 60 * lerpasad + ang:Right() * 15 * lerpasad
+				tr.filter = {ply, follow}
+				tr.mask = MASK_SOLID
 
-			view.origin = util.TraceLine(tr).HitPos + ((tr.endpos - tr.start):GetNormalized() * -5)
+				view.origin = util.TraceLine(tr).HitPos + ((tr.endpos - tr.start):GetNormalized() * -5) * lerpasad
+			else
+				view.origin = pos
+			end
+
 			view.angles = ang
 		end
 	else
