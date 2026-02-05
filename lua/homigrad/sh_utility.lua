@@ -2622,8 +2622,9 @@ duplicator.Allow( "homigrad_base" )
 	end)
 --//
 
---\\ Shared coldmaps
-hg.ColdMaps = {
+
+--\\ Shared maps with temperatures
+hg.TemperatureMaps = {
 	["gm_wintertown"] = true,
 	["cs_drugbust_winter"] = true,
 	["cs_office"] = true,
@@ -2637,7 +2638,8 @@ hg.ColdMaps = {
 	["mu_riverside_snow"] = true,
 	["gm_fork_north"] = true,
 	["gm_fork_north_day"] = true,
-	["gm_ijm_boreas"] = true
+	["gm_ijm_boreas"] = true,
+	["gm_construct"] = true, -- test
 }
 --//
 

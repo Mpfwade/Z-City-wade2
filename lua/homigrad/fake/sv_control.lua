@@ -631,7 +631,6 @@ hook.Add("Think", "Fake", function()
 
 						local useent = (IsValid(ent) and ent.Use and ent) or false 
 						if useent and not useent:IsVehicle() then useent:Use(ply) end
-
 						local wep = ent:IsWeapon() and ent or false
 						ply.force_pickup = true
 						if IsValid(wep) and hook.Run("PlayerCanPickupWeapon", ply, wep) then ply:PickupWeapon(wep) end
