@@ -1522,7 +1522,7 @@ local hg_temperaturesystem = CreateConVar("hg_temperaturesystem", 1, FCVAR_ARCHI
 hook.Add("Org Think", "BodyTemperature", function(owner, org, timeValue) -- переделал систему температуры
 	if not owner:IsPlayer() or not owner:Alive() then return end
 	if owner.GetPlayerClass and owner:GetPlayerClass() and owner:GetPlayerClass().NoFreeze then return end
-
+	if !hg_temperaturesystem:GetBool() then return end
 	if (owner.CheckTemp or 0) > CurTime() then return end
 	owner.CheckTemp = CurTime() + 0.5--optimization update
 
