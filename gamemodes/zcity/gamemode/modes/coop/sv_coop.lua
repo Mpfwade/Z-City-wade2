@@ -7,8 +7,8 @@ MODE.ROUND_TIME = 9000
 hg.NextMap = ""
 
 
-local coop_rts = CreateConVar("zb_coop_rts", "0", FCVAR_PROTECTED, "apeh twix", 0, 1)
-local coop_rts_cmb = CreateConVar("zb_coop_rts_cmb", "0", FCVAR_PROTECTED, "hepa xiwt", 0, 1)
+local coop_rts = CreateConVar("zb_coop_rts", "1", FCVAR_PROTECTED, "apeh twix", 0, 1)
+local coop_rts_cmb = CreateConVar("zb_coop_rts_cmb", "1", FCVAR_PROTECTED, "hepa xiwt", 0, 1)
 
 MODE.LootSpawn = false
 
@@ -240,6 +240,7 @@ function MODE:GiveEquipment()
     timer.Simple(0, function()
         local players = player.GetAll()
         local medicCount = 0
+        local grenadierCount = 0
         local hasGordon = false
 
         local currentMap = game.GetMap()
@@ -247,6 +248,7 @@ function MODE:GiveEquipment()
         local playerClass = mapData.PlayerEqipment
         
         local maxMedics = math.max(1, math.min(3, math.floor(#players / 5)))
+        local maxGrenadier = math.max(1, math.min(3, math.floor(#players / 5)))
 
         local savedGordonExists, savedGordonSteamID = false, nil
         if hg.CoopPersistence and hg.CoopPersistence.HasSurvivedGordon then
@@ -297,6 +299,17 @@ function MODE:GiveEquipment()
                             ply:SetPlayerClass(savedPlayerClass or "Rebel", {bNoEquipment = true})
                         end
                         zb.GiveRole(ply, "Medic", Color(190, 0, 0))
+                    elseif savedSubClass == "grenadier" then
+                        ply.subClass = "grenadier"
+                        grenadierCount = grenadierCount + 1
+                        
+                        
+                        if savedPlayerClass == "Refugee" then
+                            ply:SetPlayerClass("Refugee", {bNoEquipment = true})
+                        else
+                            ply:SetPlayerClass(savedPlayerClass or "Rebel", {bNoEquipment = true})
+                        end
+                        zb.GiveRole(ply, "Grenadier", Color(190, 50, 0))
                     else
                         ply.subClass = nil
                         
@@ -320,9 +333,10 @@ function MODE:GiveEquipment()
                     end
                 end
             else
-                local wasGordon, wasMedic = self:GiveDefaultEquipment(ply, playerClass, hasGordon, medicCount, maxMedics, savedGordonExists)
+                local wasGordon, wasMedic, wasGrenadier = self:GiveDefaultEquipment(ply, playerClass, hasGordon, medicCount, maxMedics, grenadierCount, maxGrenadier, savedGordonExists)
                 if wasGordon then hasGordon = true end
                 if wasMedic then medicCount = medicCount + 1 end
+                if wasGrenadier then grenadierCount = grenadierCount + 1 end
             end
 
             local hands = ply:Give("weapon_hands_sh")
@@ -337,9 +351,10 @@ function MODE:GiveEquipment()
     end)
 end
 
-function MODE:GiveDefaultEquipment(ply, playerClass, hasGordon, medicCount, maxMedics, savedGordonExists)
+function MODE:GiveDefaultEquipment(ply, playerClass, hasGordon, medicCount, maxMedics, grenadierCount, maxGrenadier, savedGordonExists)
     local wasGordon = false
     local wasMedic = false
+    local wasGrenadier = false
     
     local inv = ply:GetNetVar("Inventory")
     inv["Weapons"]["hg_sling"] = true
@@ -360,16 +375,39 @@ function MODE:GiveDefaultEquipment(ply, playerClass, hasGordon, medicCount, maxM
             ply.subClass = nil
         end
 
-        if playerClass == "refugee" or playerClass == "citizen" then
+        local isGrenadier = false
+        if not isMedic and grenadierCount < maxGrenadier then
+            ply.subClass = "grenadier"
+            isGrenadier = true
+            wasGrenadier = true
+        end
+
+        --[[if playerClass == "refugee" or playerClass == "citizen" then
             ply:SetPlayerClass("Refugee", {bNoEquipment = playerClass == "citizen"})
             zb.GiveRole(ply, isMedic and "Medic" or "Refugee", isMedic and Color(190,0,0) or Color(255, 155, 0))
         elseif playerClass == "rebel" then
             ply:SetPlayerClass("Rebel")
             zb.GiveRole(ply, isMedic and "Medic" or "Rebel", isMedic and Color(190,0,0) or Color(255, 155, 0))
+        end]]
+
+        if playerClass == "refugee" or playerClass == "citizen" then
+            ply:SetPlayerClass("Refugee", {bNoEquipment = playerClass == "citizen"})
+        elseif playerClass == "rebel" then
+            ply:SetPlayerClass("Rebel")
+        end
+
+        if isMedic then
+            zb.GiveRole(ply, "Medic", Color(190,0,0))
+        elseif isGrenadier then
+            zb.GiveRole(ply, "Grenadier", Color(190, 50, 0))
+        elseif playerClass == "refugee" or playerClass == "citizen" then
+            zb.GiveRole(ply, "Refugee", Color(255, 155, 0))
+        elseif playerClass == "rebel" then
+            zb.GiveRole(ply, "Rebel", Color(255, 155, 0))
         end
     end
     
-    return wasGordon, wasMedic
+    return wasGordon, wasMedic, wasGrenadier
 end
 
 util.AddNetworkString("coop_roundend")
