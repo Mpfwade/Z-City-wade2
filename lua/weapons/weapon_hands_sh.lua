@@ -6,8 +6,8 @@ end
 
 SWEP.Category = "ZCity Other"
 SWEP.Instructions = "LMB - raise fists\nRELOAD - lower fists\n\nIn the raised state:\nLMB - strike\nRMB - block\n\nIn the lowered state: RMB - raise the object, RMB+R - check the pulse (when used on someone's head or hand)\n\nWhen holding the object: RELOAD - fix the object in air, E - spin the object in the air."
-SWEP.Spawnable = false
-SWEP.AdminOnly = true
+SWEP.Spawnable = true
+SWEP.AdminOnly = false
 SWEP.HoldType = "normal"
 SWEP.ViewModel = ""
 SWEP.WorldModel = "models/weapons/c_arms.mdl"
