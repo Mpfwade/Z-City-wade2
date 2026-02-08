@@ -280,6 +280,12 @@ hook.Add("WeaponEquip","pickuplom",function(wep,ply)
 	end
 end)
 
+hook.Add("HG_CanThoughts", "GordonCantDumat", function(ply)
+	if ply.PlayerClassName == "Gordon" then
+		return false
+	end
+end)
+
 hook.Add("PlayerCanPickupItem","hevsuit",function(ply, ent)
     local entclass = ent:GetClass()
     if entclass == "item_suit" then

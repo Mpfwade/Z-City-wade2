@@ -327,9 +327,9 @@ local function get_status_message(ply)
 		end
 	end
 
-	local nomessage = ply.PlayerClassName == "Gordon" || ply.PlayerClassName == "Combine"
+	local nomessage = hook.Run("HG_CanThoughts", ply) --ply.PlayerClassName == "Gordon" || ply.PlayerClassName == "Combine"
+	if nomessage ~= nil and nomessage == false then return "" end
 
-	if nomessage then return "" end
     if ply:GetInfoNum("hg_showthoughts", 1) == 0 then return "" end
 
 	local org = ply.organism

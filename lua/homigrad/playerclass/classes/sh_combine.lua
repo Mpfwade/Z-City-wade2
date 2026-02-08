@@ -224,6 +224,7 @@ function CLASS.Off(self)
 	self:SetNWString("PlayerName", self.oldname_cmb or self:GetNWString("PlayerName"))
     self.organism.CantCheckPulse = nil
     self.leader = nil
+	hook.Remove("OnEntityCreated", "relation_shipdo"..self:EntIndex())
 end
 
 
@@ -684,6 +685,12 @@ if CLIENT then
         end
     end)
 end
+
+hook.Add("HG_CanThoughts", "CombineCantDumat", function(ply)
+	if ply.PlayerClassName == "Combine" then
+		return false
+	end
+end)
 
 --;; Серверные хуки и звуки шагов/смерти
 if SERVER then
