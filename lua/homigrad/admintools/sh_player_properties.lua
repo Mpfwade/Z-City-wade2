@@ -34,7 +34,7 @@ properties.Add( "notify", {
         ent = hg.RagdollOwner( ent ) or ent
 
 		ent:Notify( text, 0 )
-		print(tostring(ply:Nick() or ply) .." has notfied ".. tostring(ent:Nick() or ent) .." with the following message; ")
+		print(tostring(ply:Nick() or ply) .." has notfied ".. tostring(ent:Nick() or ent) .." with the following message; "..text)
 	end 
 } )
 

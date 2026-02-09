@@ -26,7 +26,7 @@ properties.Add( "furrify", {
 		ent = hg.RagdollOwner(ent) or ent
 
 		hg.Furrify(ent)
-		print(ply.." has turned "..ent.." into a furry.")
+		print(tostring(ply:Nick() or ply) .." has turned ".. tostring(ent:Nick() or ent) .." into a furry ")
 	end
 } )
 
