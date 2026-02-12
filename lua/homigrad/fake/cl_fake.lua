@@ -328,7 +328,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 	if hg_gopro:GetBool() then
 		return SpecCam(follow, origin, angles, fov, znear, zfar)
 	end
-
+	hook.Run("PostHGCalcView", ply, view)
 	return view
 end
 

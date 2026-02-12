@@ -503,6 +503,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 		vpang[3] = 0
 		view.angles:Add(-vpang)
 		view.angles[3] = view.angles[3] + GetViewPunchAngles4()[3]
+		hook_Run("PostHGCalcView", ply, view)
 		return view
 	end
 	

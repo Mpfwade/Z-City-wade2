@@ -2877,3 +2877,132 @@ duplicator.Allow( "homigrad_base" )
 		return next( tab ) == nil
 	end
 --//
+
+--\\ Custom Screen Shake
+if SERVER then
+	util.AddNetworkString("util.ScreenShake")
+end
+
+hg.OldScreenShake = hg.OldScreenShake or util.ScreenShake
+
+local ScreenShakers = {} -- Shake your a... don't :3
+--[[
+	ScreenShakers[#ScreenShakers + 1] = {
+		vPos = vPos,
+		nAmplitude = nAmplitude,
+		nFrequency = nFrequency,
+		nDuration = nDuration or 1,
+		nRadius = nRadius,
+		bAirshake = bAirshake,
+		tCreated = CurTime()
+	}
+--]]
+function util.ScreenShake(vPos, nAmplitude, nFrequency, nDuration, nRadius, bAirshake, crfFilter)
+	if SERVER then -- SERVER SIDE
+		nRadius = nRadius or (nAmplitude * 100)
+		local tEnts = ents.FindInSphere(vPos, nRadius * nRadius)
+		--PrintTable(tEnts)
+		local crf = RecipientFilter()
+		--print(#tEnts)
+		for i = 1, #tEnts do
+			local eEnt = tEnts[i]
+			if !IsValid(eEnt) then continue end
+			if !eEnt:IsPlayer() then continue end
+			crf:AddPlayer(eEnt)
+		end
+		crf = crf or crfFilter
+		--print(crf)
+		net.Start("util.ScreenShake")
+			net.WriteVector(vPos)
+			net.WriteFloat(nAmplitude)
+			net.WriteFloat(nFrequency)
+			net.WriteFloat(nDuration or 1)
+			net.WriteFloat(nRadius)
+			net.WriteBool(bAirshake)
+		net.Send(crf)
+	elseif CLIENT then -- CLIENT SIDE
+		nRadius = nRadius or (nAmplitude * 100)
+		ScreenShakers[#ScreenShakers + 1] = {
+			vPos = vPos,
+			nAmplitude = nAmplitude,
+			nFrequency = nFrequency,
+			nDuration = nDuration or 1,
+			nRadius = nRadius,
+			bAirshake = bAirshake,
+			tCreated = CurTime()
+		}
+		hg.OldScreenShake(vPos, nAmplitude, nFrequency, nDuration, nRadius, bAirshake, crfFilter)
+	end
+end
+
+local plyMeta = FindMetaTable("Player")
+function plyMeta:ScreenShake(vPos, nAmplitude, nFrequency, nDuration, nRadius, bAirshake)
+	if SERVER then
+		local crfFilter = RecipientFilter()
+		crfFilter:AddPlayer(self)
+		util.ScreenShake(vPos, nAmplitude, nFrequency, nDuration, nRadius, bAirshake, crfFilter)
+	elseif CLIENT and self == lply then
+		util.ScreenShake(vPos, nAmplitude, nFrequency, nDuration, nRadius, bAirshake)
+	end
+end
+
+if CLIENT then
+	-- Clientside receive
+	net.Receive("util.ScreenShake",function()
+		local vPos = net.ReadVector()
+		local nAmplitude = net.ReadFloat()
+		local nFrequency = net.ReadFloat()
+		local nDuration = net.ReadFloat()
+		local nRadius = net.ReadFloat()
+		local bAirshake = net.ReadBool(bAirshake)
+
+		util.ScreenShake(vPos, nAmplitude, nFrequency, nDuration, nRadius, bAirshake)
+	end)
+
+	hook.Add("PostHGCalcView","util.ScreenShake",function(ply, view)
+		for i = 1, #ScreenShakers do
+			local shake = ScreenShakers[i]
+			if shake then
+				if !ply:IsOnGround() and !shake.bAirshake then continue end
+				local distance = shake.vPos:DistToSqr(ply:GetPos())
+				local mul = 1 - (distance / (shake.nRadius * shake.nRadius) / 2)
+				mul = math.max(mul, 0)
+				mul = Lerp(math.ease.InExpo(mul),0,1)
+
+				local timeMul = ((shake.tCreated + shake.nDuration) - CurTime()) / shake.nDuration
+				shake.vNormal = shake.vNormal or VectorRand(-1,1)
+				shake.vShake =  shake.vNormal * (math.Rand(0,2) * timeMul)
+				local vNoise = VectorRand(-0.2,0.2)
+				shake.vShake = shake.vShake + vNoise
+				if !shake.gFrequency or shake.gFrequency < CurTime() then
+					shake.gFrequency = CurTime() + (100 - shake.nFrequency) / 100
+					shake.vNormal = VectorRand(-1,1)
+				end
+
+				shake.finalShake = LerpVectorFT(0.3, shake.finalShake or Vector(0,0,0), shake.vShake)
+				local vShake = shake.finalShake
+				vShake = vShake * shake.nAmplitude / 5
+				vShake = vShake * mul
+				vShake = vShake * timeMul
+				vShake.z = vShake.z * 0.5
+				vShake.x = math.max(vShake.x, 0)
+
+				local angles = view.angles
+				view.origin = view.origin
+					+ angles:Forward() * vShake.x
+					+ angles:Right() * vShake.y
+					+ angles:Up() * vShake.z
+
+				angles[1] = angles[1] + vShake.z
+				--angles[2] = angles[2] + vShake.x
+				angles[3] = angles[3] + vShake.y
+
+				if timeMul <= 0 then
+					table.remove(ScreenShakers, i)
+				end
+			end
+		end
+		return view
+	end)
+end
+--//
