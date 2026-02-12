@@ -8,7 +8,7 @@ function zb.AddFade()
 	net.Broadcast()
 end
 
-local forcemodeconvar = CreateConVar("zb_forcemode", "Set force mode (set to 'random' to disable)", FCVAR_ARCHIVE)
+local forcemodeconvar = CreateConVar("zb_forcemode", "random", FCVAR_ARCHIVE, "Set force mode (set to 'random' to disable)")
 
 function zb:GetMode(round)
 	if zb.modes[round] then return round end
