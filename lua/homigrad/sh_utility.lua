@@ -2100,16 +2100,15 @@ local IsValid = IsValid
 	end)
 --//
 --\\ Lootable npcs
-	--[[ --!! TODO
 	local lootNPCs = {
-		["npc_combine_s"] = {
+		["npc_metropolice"] = {
 			"weapon_hg_stunstick",
 			"weapon_medkit_sh",
 			"weapon_bandage_sh",
 			"weapon_handcuffs",
 			"weapon_walkie_talkie"
 		},
-		["npc_metropolice"] = {
+		["npc_combine_s"] = {
 			"weapon_melee",
 			"weapon_hg_hl2nade_tpik",
 			"weapon_bandage_sh",
@@ -2121,19 +2120,39 @@ local IsValid = IsValid
 			"weapon_painkillers"
 		}
 	}
+
+	local nameNPCs = {
+		["npc_metropolice"] = {"Metrocop", Vector(0, 100, 255) / 255},
+		["npc_combine_s"] = {"Combine", Vector(0, 180, 180) / 255},
+		["npc_citizen"] = {"Refugee", Vector(255, 155, 0) / 255}
+	}
+
 	hook.Add("CreateEntityRagdoll", "npcloot", function(ent, rag)
 		local loot = lootNPCs[ent:GetClass()]
 		if IsValid(ent) and IsValid(rag) and ent:IsNPC() and loot then
-			rag.armors = {}
 			rag.inventory = {}
+			rag.inventory.Weapons = {}
 
-			rag.was_opened = true
-
-			rag.inventory.Weapons = loot or {}
-			rag:SetNetVar("Inventory", rag.inventory )
+			for k, wep in pairs(loot) do
+				rag.inventory.Weapons[wep] = {}
+				rag:SetNetVar("Inventory", rag.inventory)
+				rag:SetNWString("PlayerName", nameNPCs[ent:GetClass()][1])
+				rag:SetNWVector("PlayerColor", nameNPCs[ent:GetClass()][2])
+				rag.GetPlayerName = function()
+					return nameNPCs[ent:GetClass()][1]
+				end
+			end
 		end
 	end)
-	]]
+--//
+--\\ Disable drive
+	--[[hook.Add("StartEntityDriving", "disabledriving", function(ent, ply)
+		return false
+	end)
+
+	hook.Add("PlayerDriveAnimate", "disabledriving", function(ent, ply)
+		return false
+	end)]]
 --//
 --\\ timescale pitch change
 	local cheats = GetConVar( "sv_cheats" )
