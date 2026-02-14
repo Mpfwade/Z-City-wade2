@@ -8,8 +8,8 @@ function zb.AddFade()
 	net.Broadcast()
 end
 
-local forcemodeconvar = CreateConVar("zb_forcemode", "", FCVAR_ARCHIVE)
-
+local forcemodeconvar = CreateConVar("zb_forcemode", "random", nil, "Set force mode (set to 'random' to disable)")
+forcemodeconvar:SetString("random")
 function zb:GetMode(round)
 	if zb.modes[round] then return round end
 
@@ -766,15 +766,18 @@ COMMANDS.setforcemode = {
 		if args[1] ~= "random" then
 			NextRound(args[1])
 		end
-	end,
-	0
+	end, 0
 }
 
-COMMANDS.endround = {function(ply, args)
-	if not ply:IsAdmin() then ply:ChatPrint("You don't have access") return end
+COMMANDS.endround = {
+	function(ply, args)
+		if not ply:IsAdmin() then
+			ply:ChatPrint("You don't have access")
+			return
+		end
 	 	zb:EndRound()
-	end,
-	0}
+	end, 0
+}
 
 if SERVER then
 	util.AddNetworkString("SendAvailableModes")

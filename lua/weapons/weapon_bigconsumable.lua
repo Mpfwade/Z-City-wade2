@@ -92,6 +92,7 @@ end
 
 function SWEP:InitializeAdd()
 	self:SetHold(self.HoldType)
+
 	local sharedrand = math.Round(util.SharedRandom("rand"..self:EntIndex()..math.floor(CurTime()),1,#self.FoodModels))
 	local model = self.FoodModels[sharedrand]
 	self:SetModel( model )
@@ -122,8 +123,19 @@ function SWEP:Animation()
     self:BoneSet("l_forearm", vector_origin, lang2)
 end
 
+function SWEP:OwnerChanged()
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner:IsNPC() then
+		self:NPCHeal(owner, 0.2, "snd_jack_hmcd_eat"..math.random(4)..".wav")
+	end
+end
+
 if SERVER then
-	function SWEP:Heal(ent, mode, bone)
+	function SWEP:Heal(ent, mode)
+		if ent:IsNPC() then
+			self:NPCHeal(ent, 0.2, "snd_jack_hmcd_eat"..math.random(4)..".wav")
+		end
+
 		local org = ent.organism
 		if not org then return end
 		self.Eating = self.Eating or 0

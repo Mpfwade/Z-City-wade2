@@ -29,7 +29,8 @@ SWEP.modeNames = {
 }
 
 function SWEP:InitializeAdd()
-    self:SetHold(self.HoldType)
+	self:SetHold(self.HoldType)
+
     self.modeValues = {
         [1] = 1
     }
@@ -55,8 +56,19 @@ function SWEP:Animation()
     self:BoneSet("l_forearm", vector_origin, lang2)
 end
 
+function SWEP:OwnerChanged()
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner:IsNPC() then
+		self:NPCHeal(owner, 0.1, "snd_jack_hmcd_pillsuse.wav")
+	end
+end
+
 if SERVER then
-    function SWEP:Heal(ent, mode)
+	function SWEP:Heal(ent, mode)
+		if ent:IsNPC() then
+			self:NPCHeal(ent, 0.1, "snd_jack_hmcd_needleprick.wav")
+		end
+
         local org = ent.organism
         if not org then return end
         self:SetBodygroup(1, 1)

@@ -308,6 +308,7 @@ end
 
 function SWEP:Initialize()
 	self:SetHold(self.HoldType)
+
 	self.modeValues = {
 		[1] = 40,
 	}
@@ -547,6 +548,11 @@ if SERVER then
 	end
 
 	function SWEP:Heal(ent, mode, bone)
+		local owner = self:GetOwner()
+		if owner:IsNPC() then
+			self:NPCHeal(owner, 0.15, "snd_jack_hmcd_bandage.wav")
+		end
+
 		local org = ent.organism
 		if not org then return end
 
@@ -1062,10 +1068,46 @@ function SWEP:Holster(wep)
 	return true
 end
 
+function SWEP:NPCHeal(npc, mul, snd)
+	if not npc then
+		npc = self:GetOwner()
+	end
+
+	if npc:IsNPC() then
+		self:SetHold("melee")
+		if not mul then
+			mul = 0.3
+		end
+		npc:SetHealth(math.Clamp(npc:Health() + (npc:GetMaxHealth() * 1 * mul), 0, npc:GetMaxHealth() * math.Clamp(2 * mul, 2, 100)))
+		npc:EmitSound(snd or "snd_jack_hmcd_bandage.wav", 75, math.random(95, 105))
+
+		if SERVER then
+			self:Remove()
+		end
+	end
+end
+
+function SWEP:OwnerChanged()
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner:IsNPC() then
+		self:NPCHeal(owner, 0.15, "snd_jack_hmcd_bandage.wav")
+	end
+end
+
 function SWEP:Deploy()
 	if SERVER or CLIENT and self:IsLocal() then
 		self:EmitSound(self.DeploySnd, 50, math.random(90, 110))
 	end
 
+	if self.DeployAdd then self:DeployAdd() end
+
 	return true
+end
+
+function SWEP:CanBePickedUpByNPCs()
+	return true
+end
+
+function SWEP:GetNPCRestTimes()
+	return 0.1, 0.1
 end

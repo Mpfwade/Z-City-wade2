@@ -30,10 +30,12 @@ SWEP.HolsterSnd = ""
 
 function SWEP:InitializeAdd()
 	self:SetHold(self.HoldType)
+
 	self.modeValues = {
 		[1] = 1,
 	}
 end
+
 SWEP.ofsV = Vector(0,8,-3)
 SWEP.ofsA = Angle(-90,-90,90)
 SWEP.modeValuesdef = {
@@ -57,8 +59,19 @@ sound.Add( {
 	sound = "snd_jack_sss.wav",
 } )
 
+function SWEP:OwnerChanged()
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner:IsNPC() then
+		self:NPCHeal(owner, 0.3, "snd_jack_hmcd_needleprick.wav")
+	end
+end
+
 if SERVER then
 	function SWEP:Heal(ent, mode)
+		if ent:IsNPC() then
+			self:NPCHeal(ent, 0.3, "snd_jack_hmcd_needleprick.wav")
+		end
+
 		local org = ent.organism
 		if not org then return end
 		self:SetBodygroup(1, 1)

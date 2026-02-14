@@ -20,8 +20,16 @@ if CLIENT then
 	SWEP.BounceWeaponIcon = false
 end
 
+function SWEP:OwnerChanged()
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner:IsNPC() then
+		self:NPCHeal(owner, 0.25, "snd_jack_hmcd_bandage.wav")
+	end
+end
+
 function SWEP:Initialize()
 	self:SetHold(self.HoldType)
+
 	self.ModelScale = 1.1
 	self.modeValues = {
 		[1] = 150,
@@ -40,6 +48,8 @@ function SWEP:Deploy()
 		self:EmitSound(self.DeploySnd,50,math.random(90,110))
 	end
 
+	if self.DeployAdd then self:DeployAdd() end
+
 	if self.isFirstDeploy then
 		local owner = self:GetOwner()
 		if IsValid(owner) and owner.Profession == "doctor" then
@@ -54,4 +64,24 @@ function SWEP:Deploy()
 	end
 
 	return true
+end
+
+if SERVER then
+	function SWEP:Heal(ent, mode, bone)
+		local owner = self:GetOwner()
+		if owner:IsNPC() then
+			self:NPCHeal(owner, 0.25, "snd_jack_hmcd_bandage.wav")
+		end
+	
+		local org = ent.organism
+		if not org then return end
+	
+		local done = self:Bandage(ent, bone)
+		if self.modeValues[1] <= 0 and self.ShouldDeleteOnFullUse then
+			self:GetOwner():SelectWeapon("weapon_hands_sh")
+			self:Remove()
+		end
+		
+		return done
+	end
 end

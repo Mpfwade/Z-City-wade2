@@ -34,6 +34,7 @@ end
 
 function SWEP:InitializeAdd()
 	self:SetHold(self.HoldType)
+
 	self.modeValues = {
 		[1] = 0
 	}
@@ -76,6 +77,13 @@ function SWEP:SetInfo(info)
 	self.modeValues = info
 	self.bloodtype = ""..(self.modeValues.bloodtype or "o-")
 	self.modeValues.bloodtype = nil
+end
+
+function SWEP:OwnerChanged()
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner:IsNPC() then
+		self:NPCHeal(owner, 0.3, "zcity/healing/bloodbag_spear_0.wav")
+	end
 end
 
 if SERVER then

@@ -261,7 +261,7 @@ local ents_FindInCone = ents.FindInCone
 local vectorup = Vector(0, 0, 25)
 local ang = math.cos( math.rad( 125 ) )
 local function gasInertia(pos, force, dir)
-	if force >= 150 then return end
+	--if force >= 150 then return end
 	for _, ent in ipairs(ents_FindInCone(pos, dir, force, ang)) do
 		--print(ent)
 		if IsValid(ent) and not ent:IsNPC() and not ent:IsPlayer() then
@@ -309,7 +309,7 @@ bulletHit = function(ply, tr, dmgInfo, bullet, Weapon)
 	end
 
 	--local force = bullet.Force
-	if force >= 20 then
+	--if force >= 20 then
 		local dist = trStart:DistToSqr(trPos)
 		if dist <= 160000 and (math.random(3) == 2 or force >= 30) and tr.Entity:IsWorld() and allowedMats[tr.MatType] then
 			util.Decal("Impact.ShootAdd" .. math.random(shootDecalRand), trPos + trNormal, trPos - trNormal)
@@ -321,7 +321,7 @@ bulletHit = function(ply, tr, dmgInfo, bullet, Weapon)
 
 		gasInertia(trPos, force * 3, -tr.Normal)
 		gasInertia(trStart, force * 3, tr.Normal)
-	end
+	--end
 
 	timer.Simple(0,function()
 		if not bullet then return end

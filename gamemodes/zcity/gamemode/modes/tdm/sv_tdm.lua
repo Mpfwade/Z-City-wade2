@@ -79,7 +79,7 @@ local tblarmors = {
 	},
 }
 
-local giveweapons = CreateConVar("zb_tdm_giveweapon","1",FCVAR_LUA_SERVER,"TDMSPAWNS",0,1)
+-- local giveweapons = CreateConVar("zb_tdm_giveweapon","1",FCVAR_LUA_SERVER,"TDMSPAWNS",0,1)
 
 function MODE:GetPlySpawn(ply)
 end

@@ -325,9 +325,9 @@ function SWEP:IsLocal2()
 	return CLIENT and self:GetOwner() == LocalPlayer() and LocalPlayer() == GetViewEntity()
 end
 
-local hg_quietshots = GetConVar("hg_quietshots") or CreateClientConVar("hg_quietshots", "0", true, false, "quieter gun sounds", 0, 1)
-local hg_gunshotvolume = GetConVar("hg_gunshotvolume") or CreateClientConVar("hg_gunshotvolume", "1", true, false, "volume of gun sounds", 0, 1)
-local hg_oldsights = CreateConVar("hg_oldsights", "0", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "No camera wobble when aiming")
+local hg_quietshots = GetConVar("hg_quietshots") or CreateClientConVar("hg_quietshots", "0", true, false, "Toggle quieter gun sounds", 0, 1)
+local hg_gunshotvolume = GetConVar("hg_gunshotvolume") or CreateClientConVar("hg_gunshotvolume", "1", true, false, "Modify volume of gun sounds", 0, 1)
+local hg_oldsights = CreateConVar("hg_oldsights", "0", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Disable camera wobble when aiming")
 
 if CLIENT then
 	EmitSound = hg.EmitSound
@@ -465,10 +465,14 @@ end
 
 function SWEP:Shoot(override)
 	self:PrimaryShootPre()
-	if self:GetOwner():IsNPC() then self.drawBullet = true end
+
+	local owner = self:GetOwner()
+	if owner:IsNPC() then self.drawBullet = true end
+
 	if !override and !self:CanPrimaryAttack() then return false end
 	if !override and !self:CanUse() then return false end
-	if CLIENT and self:GetOwner() != LocalPlayer() and !override then return false end
+	if CLIENT and owner != LocalPlayer() and !override then return false end
+
 	local primary = self.Primary
 	if override then self.drawBullet = true end
 	
@@ -480,8 +484,8 @@ function SWEP:Shoot(override)
 		return false
 	end
 	
-	if !override and IsValid(self:GetOwner()) and !self:GetOwner():IsNPC() and primary.Next > CurTime() then return false end
-	if !override and IsValid(self:GetOwner()) and !self:GetOwner():IsNPC() and (primary.NextFire or 0) > CurTime() then return false end
+	if !override and IsValid(owner) and !owner:IsNPC() and primary.Next > CurTime() then return false end
+	if !override and IsValid(owner) and !owner:IsNPC() and (primary.NextFire or 0) > CurTime() then return false end
 	
 	primary.Next = CurTime() + primary.Wait * 1.1
 	primary.RealAutomatic = primary.RealAutomatic or weapons_Get(self:GetClass()).Primary.Automatic
@@ -586,7 +590,7 @@ if SERVER then
 		net.Send(ply)
 	end)
 
-	hg_shoot_tinnitus = ConVarExists("hg_shoot_tinnitus") and GetConVar("hg_shoot_tinnitus") or CreateConVar("hg_shoot_tinnitus","0", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Enables shooting tinnitus")
+	hg_shoot_tinnitus = ConVarExists("hg_shoot_tinnitus") and GetConVar("hg_shoot_tinnitus") or CreateConVar("hg_shoot_tinnitus","0", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Toggle shooting tinnitus")
 	SetGlobalBool("hg_shoot_tinnitus",hg_shoot_tinnitus:GetBool())
 
 	cvars.AddChangeCallback("hg_shoot_tinnitus", function(convar_name, value_old, value_new)
@@ -1485,10 +1489,10 @@ hg.postureFunctions2 = {
 SWEP.AdditionalPosPreLerp = Vector(0,0,0)
 SWEP.AdditionalAngPreLerp = Angle(0,0,0)
 
-SWEP.vecSuicidePist = Vector(-7,-7,4)
-SWEP.angSuicidePist = Angle(40,100,80)
-SWEP.vecSuicidePist2 = Vector(-6,-4,9)
-SWEP.angSuicidePist2 = Angle(60,100,80)
+SWEP.vecSuicidePist = Vector(-6,-4,2)
+SWEP.angSuicidePist = Angle(20,110,-10)
+SWEP.vecSuicidePist2 = Vector(-5,-5,3)
+SWEP.angSuicidePist2 = Angle(32,105,20)
 SWEP.vecSuicideRifle = Vector(2,-19,-1)
 SWEP.angSuicideRifle = Angle(15,100,90)
 SWEP.vecSuicideRifle2 = Vector(12, -20, 0)
@@ -1779,7 +1783,7 @@ function SWEP:GetAdditionalValues()
 	local suiciding = false--ply.suiciding
 	local huypitch = ((ply.suiciding and !IsValid(ply.FakeRagdoll)) or huya or (self:IsSprinting() or ((ply.posture == 4 or ply.posture == 3) and not self:IsZoom())))
 
-	self.pitch = Lerp(hg.lerpFrameTime(0.001,dtime), self.pitch, ply:GetNWFloat("InLegKick",0) > CurTime() and 0.5 or suiciding and 1 or huypitch and 0.65 or self.reload and 0.75 or 0)
+	self.pitch = Lerp(hg.lerpFrameTime(0.001,dtime), self.pitch, ply:GetNWFloat("InLegKick",0) > CurTime() and 0.5 or suiciding and 1 or huypitch and 0.65 or (self.reload and self.ReloadNoPitch) and 0.75 or 0)
 	
 	if not huypitch then
 		local torso = ply:LookupBone("ValveBiped.Bip01_Spine1")
@@ -1910,7 +1914,7 @@ function SWEP:InUse()
 		return false
 	end
 
-	return ( ((not ply.InVehicle || !ply:InVehicle()) and !hg.RagdollCombatInUse(ply)) && self:KeyDown(IN_USE)) || ((ply.InVehicle && ply:InVehicle() or hg.RagdollCombatInUse(ply) or ent == ply) && not self:KeyDown(IN_USE)) || (self.reload and self.reload > 0) || (IsValid(ply.OldRagdoll))
+	return ( ((not ply.InVehicle || !ply:InVehicle()) and !hg.RagdollCombatInUse(ply)) && (self:KeyDown(IN_USE) || self:IsResting())) || ((ply.InVehicle && ply:InVehicle() or hg.RagdollCombatInUse(ply) or ent == ply) && not self:KeyDown(IN_USE)) || (self.reload and self.reload > 0) || (IsValid(ply.OldRagdoll))
 end
 
 local veczero = Vector(0, 0, 0)
@@ -2285,11 +2289,14 @@ end
 
 function SWEP:CanRest()
     if !self.RestPosition then return end
+
 	if SERVER then
 		self:WorldModel_Transform()
-	end
+	end -- this shit needs to be changed
+	-- desiredPos differs on CLIENT and SERVER (drastically)
     local pos, ang = self.desiredPos, self:GetOwner():EyeAngles()--self:GetTrace(true, nil, nil, true)
-    local pos, _ = LocalToWorld(self.RestPosition, angle_zero, pos, ang)
+    
+	local pos, _ = LocalToWorld(self.RestPosition + (self.BipodOffset or vector_origin), angle_zero, pos, ang)
 	
     local tr = {}
     local vec = vector_up--ang:Up()
@@ -2297,9 +2304,13 @@ function SWEP:CanRest()
     tr.endpos = pos + vec * -30
     tr.filter = {self, self:GetOwner(), hg.GetCurrentCharacter(self:GetOwner())}
 
-    --debugoverlay.Line(tr.start, tr.endpos, 1, color_white)
-
+	if self:GetOwner():IsSuperAdmin() then
+    	debugoverlay.Line(tr.start, tr.endpos, 1, color_white)
+	end
+	
     local trace = util.TraceLine(tr)
+	local pos, _ = LocalToWorld(-(self.BipodOffset or vector_origin), angle_zero, trace.HitPos, ang)
+	trace.HitPos = pos
 	--print(pos + vec * 10)
     if trace.Hit and !trace.StartSolid then--and trace.HitPos[3] > (self:GetOwner():EyePos()[3] - 32)/*and trace.HitNormal:Dot(ang:Up()) > 0.9*/ then
         return true, trace
@@ -2333,21 +2344,27 @@ function SWEP:RestWeapon()
 	self:SetNWVector("EntPos", trace.HitPos)
 end
 
+function SWEP:GetBipodPosAng()
+	local restent = self:GetNWEntity("RestEntity")
+
+	local restbone = self:GetNWInt("RestPBone")
+	restbone = restbone == -1 and 0 or restbone
+
+	local mat = restent:IsWorld() and Matrix() or restent:GetBoneMatrix(restbone)
+
+	local posa, anga2 = mat:GetTranslation(), mat:GetAngles()
+
+	local _, anga = LocalToWorld(vector_origin, self:GetNWAngle("RestAng"), vector_origin, anga2)
+
+	return posa, anga, anga2
+end
+
 hook.Add("HG.InputMouseApply", "restrictMouseMovement", function(tbl)
     local wep = lply:GetActiveWeapon()
 
     if ishgweapon(wep) then
         if wep:IsResting() then
-			local restent = wep:GetNWEntity("RestEntity")
-
-            local restbone = wep:GetNWInt("RestPBone")
-            restbone = restbone == -1 and 0 or restbone
-
-            local mat = restent:IsWorld() and Matrix() or restent:GetBoneMatrix(restbone)
-
-            local posa, anga = mat:GetTranslation(), mat:GetAngles()
-
-			local _, anga = LocalToWorld(vector_origin, wep:GetNWAngle("RestAng"), vector_origin, mat:GetAngles())
+			local posa, anga = wep:GetBipodPosAng()
 
             local restrict_pitch1 = 15
             local restrict_pitch2 = 30
@@ -2384,15 +2401,8 @@ hook.Add("HG_MovementCalc_2", "moveWithWeapon", function(mul, ply, cmd, mv)
                 return
             end
 
-            local restbone = wep:GetNWInt("RestPBone")
-            restbone = restbone == -1 and 0 or restbone
+			local posa, ango, anga = wep:GetBipodPosAng()
 
-            local mat = restent:IsWorld() and Matrix() or restent:GetBoneMatrix(restbone)
-
-            local posa, anga = mat:GetTranslation(), mat:GetAngles()
-			
-			local _, ango = LocalToWorld(vector_origin, wep:GetNWAngle("RestAng"), vector_origin, anga)
-			
 			wep.ownerpos2 = wep:GetNWVector("OwnerPos") + ango:Right() * math.AngleDifference(ply:EyeAngles()[2], ango[2]) * 0.5 + ango:Forward() * (math.abs(math.AngleDifference(ply:EyeAngles()[2], ango[2])) * 0.2 - math.min(15, math.abs(math.AngleDifference(ply:EyeAngles()[1], ango[1]))) * 0.25)
 
             local restpos = LocalToWorld(wep:GetNWVector("RestPos"), angle_zero, posa, anga)
@@ -2407,12 +2417,13 @@ hook.Add("HG_MovementCalc_2", "moveWithWeapon", function(mul, ply, cmd, mv)
             mv:SetForwardSpeed((wep.ownerpos2 - ply:GetPos() + (restpos - wep:GetNWVector("EntPos"))):Dot(ply:EyeAngles():Forward()) * 10)
 			
 			if restpos[3] < ply:EyePos()[3] - 40 then
-				wep:SetNWBool("IsResting", false)
+				--mv:AddKey(IN_DUCK)
+				--wep:SetNWBool("IsResting", false)
 
-				return
+				--return
 			end
-
-            if ply:EyeAngles()[1] < -10 or restpos[3] < ply:EyePos()[3] - 40 then
+			
+            if ply:EyeAngles()[1] < -10 or restpos[3] < ply:GetPos()[3] + 30 - 10 then
                 mv:AddKey(IN_DUCK)
             else
                 mv:SetButtons(bit.band(mv:GetButtons(), bit.bnot(IN_DUCK)))

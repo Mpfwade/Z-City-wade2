@@ -27,6 +27,7 @@ SWEP.modeNames = {
 
 function SWEP:InitializeAdd()
 	self:SetHold(self.HoldType)
+
 	self.modeValues = {
 		[1] = 1
 	}
@@ -51,9 +52,19 @@ function SWEP:Animation()
     self:BoneSet("l_forearm", vector_origin, lang2)
 end
 
+function SWEP:OwnerChanged()
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner:IsNPC() then
+		self:NPCHeal(owner, 0.1, "snd_jack_hmcd_pillsuse.wav")
+	end
+end
+
 if SERVER then
-	local rndsounds = {"snd_jack_hmcd_pillsuse.wav"}
 	function SWEP:Heal(ent, mode)
+		if ent:IsNPC() then
+			self:NPCHeal(ent, 0.1, "snd_jack_hmcd_pillsuse.wav")
+		end
+
 		local org = ent.organism
 		if not org then return end
 		//if ent ~= self:GetOwner() and not ent.organism.otrub then return end
@@ -61,7 +72,7 @@ if SERVER then
 		self:SetBodygroup(1, 1)
 		local owner = self:GetOwner()
 		local entOwner = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner
-		entOwner:EmitSound(table.Random(rndsounds), 60, math.random(95, 105))
+		entOwner:EmitSound("snd_jack_hmcd_pillsuse.wav", 60, math.random(95, 105))
 
 		org.thiamine = math.min(org.thiamine + 1, 1)
 		

@@ -1,7 +1,7 @@
 local getBloodColor = FindMetaTable( "Entity" ).GetBloodColor
 local isBulletDamage = FindMetaTable( "CTakeDamageInfo" ).IsBulletDamage
 
-local hg_legacycam = ConVarExists("hg_legacycam") and GetConVar("hg_legacycam") or CreateConVar("hg_legacycam", 0, FCVAR_REPLICATED, "ragdoll combat", 0, 1)
+local hg_legacycam = ConVarExists("hg_legacycam") and GetConVar("hg_legacycam") or CreateConVar("hg_legacycam", 0, FCVAR_REPLICATED, "Toggle legacy first-person view camera", 0, 1)
 
 local host_timescale = game.GetTimeScale
 
@@ -387,7 +387,7 @@ hook.Add("KeyRelease", "huy-hg2", function(ply, key)
 	net.SendPVS(ply:GetPos())
 end)
 
-local realismMode = CreateConVar( "hg_fullrealismmode", "1", FCVAR_SERVER_CAN_EXECUTE, "huy", 0, 1 )
+local realismMode = CreateConVar( "hg_fullrealismmode", "1", FCVAR_SERVER_CAN_EXECUTE, "Toggle first-person camera view", 0, 1 )
 
 cvars.AddChangeCallback("hg_fullrealismmode", function(convar_name, value_old, value_new)
 	SetGlobalBool("FullRealismMode",realismMode:GetBool())
@@ -1294,7 +1294,7 @@ local reasons = {
 local plymeta = FindMetaTable("Player")
 
 local flags = bit.bor(FCVAR_REPLICATED, FCVAR_NOTIFY, FCVAR_SERVER_CAN_EXECUTE, FCVAR_NEVER_AS_STRING)
-local hg_sync = CreateConVar("hg_sync", 0, flags, "Enable death sync", 0, 1)
+local hg_sync = CreateConVar("hg_sync", 0, flags, "Toggle death synchronized (kick player on death)", 0, 1)
 
 function plymeta:SyncDeath()
 	local SyncLastMessage = table.Random(reasons)
@@ -1496,6 +1496,23 @@ hook.Add( "AcceptInput", "StealthOpenDoors", function( ent, inp, act, ply, val )
 	end
 end )
 
+hook.Add("PlayerUse", "DoorClose", function(ply, ent)
+	local getdoor = ply:GetUseEntity()
+	if string.find(tostring(getdoor), "prop_door_rotating") and getdoor:GetInternalVariable("m_eDoorState") == 2 then
+		if getdoor:GetInternalVariable("m_hMaster") != NULL then
+			getdoor:GetInternalVariable("m_hMaster"):Fire("close")
+			hg.RunZManipAnim(ply, "door_open_back", nil, 2, {self})
+
+			return false
+		else
+			getdoor:Fire("close")
+			hg.RunZManipAnim(ply, "door_open_back", nil, 2, {self})
+
+			return false
+		end
+	end	
+end)
+
 hook.Add( "KeyPress", "snowballs_pickup", function( ply, key )
 	if IsValid(ply.FakeRagdoll) then return end
 	ply.SnowBallPickupCD = ply.SnowBallPickupCD or 0
@@ -1539,7 +1556,12 @@ function hg.TranslateToBodyTemp(temp, org)
 	return math.Remap(temp, -20, 20, 27, org and org.needed_temp or 36.7) -- math.Remap doesn't clamp
 end
 
-local hg_temperaturesystem = CreateConVar("hg_temperaturesystem", 1, FCVAR_ARCHIVE + FCVAR_REPLICATED + FCVAR_NOTIFY, "Enables/disabled temperature system", 0, 1)
+local hg_temperaturesystem = CreateConVar("hg_temperaturesystem", 1, FCVAR_ARCHIVE + FCVAR_REPLICATED + FCVAR_NOTIFY, "Toggle temperature system", 0, 1)
+local sf2_get_temp = StormFox2 and StormFox2.Temperature and StormFox2.Temperature.Get or nil
+
+hook.Add("StormFox2.PostEntityScan","load-stormfox-support",function()
+	sf2_get_temp = StormFox2 and StormFox2.Temperature and StormFox2.Temperature.Get or nil
+end)
 
 hook.Add("Org Think", "BodyTemperature", function(owner, org, timeValue) -- переделал систему температуры
 	if not owner:IsPlayer() or not owner:Alive() then return end
@@ -1561,7 +1583,7 @@ hook.Add("Org Think", "BodyTemperature", function(owner, org, timeValue) -- пе
 
 	local currentPulse = org.pulse or 70
 	local pulseHeat = 0
-	local temp = hg.MapTemps[game.GetMap()] or 20
+	local temp = sf2_get_temp and sf2_get_temp() or hg.MapTemps[game.GetMap()] or 20
 
 	if currentPulse > 80 then
 		local pulseMultiplier = math.min((currentPulse - 70) / 100, 1.2)
@@ -1714,7 +1736,7 @@ hook.Add("SetupMove", "bm_force_foosteps", function(ply, mv)
 	end
 end)
 
-local hg_fallonsideland = CreateConVar("hg_fallonsideland", "0", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED},"Enable fall from side landing")
+local hg_fallonsideland = CreateConVar("hg_fallonsideland", "0", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED},"Toggle fall from side landing (if player land direction != player eye direction)")
 hook.Add("Move", "CP_detectland", function(ply)
 	if !hg_fallonsideland:GetBool() then return end
 	local vel = ply:GetVelocity()
