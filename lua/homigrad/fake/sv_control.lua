@@ -143,7 +143,7 @@ local models_female = {
 }
 local hook_Run = hook.Run
 local vector_zero = Vector(0,0,0)
-local vector_usehull = Vector(3,3,3)
+local vector_usehull = Vector(6,6,6)
 --[[
 	ValveBiped.Bip01_L_Thigh
 	ValveBiped.Bip01_L_Calf

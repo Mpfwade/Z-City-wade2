@@ -45,7 +45,7 @@ hg.settings:AddOpt("View","hg_firstperson_death", "First-Person Death")
 hg.settings:AddOpt("View","hg_fov", "Field Of View")
 -- hg.settings:AddOpt("View","hg_coolgloves", "Cool Gloves")
 hg.settings:AddOpt("View","hg_newspectate", "Smooth Spectator Camera")
-hg.settings:AddOpt("View","hg_change_gloves", "Gloves Model")
+--hg.settings:AddOpt("View","hg_change_gloves", "Gloves Model")
 hg.settings:AddOpt("View","hg_cshs_fake", "C'sHS Ragdoll Camera")
 hg.settings:AddOpt("View","hg_gun_cam", "Gun Camera (ADMIN ONLY)")
 hg.settings:AddOpt("View","hg_nofovzoom", "Disable/Enable FOV Zoom")
@@ -57,7 +57,7 @@ hg.settings:AddOpt("Sound","hg_quietshots", "Enable/Disable Quietshoot Sounds (F
 --hg.settings:AddOpt("Sound","hg_thirdperson","ThirdPerson",false,true)
 --^^ СТРИНГ ИНПУТ
 hg.settings:AddOpt("Gameplay","hg_old_notificate", "Old Notifications")
-hg.settings:AddOpt("Gameplay","hg_random_appearance", "Enable/Disable Random Appearance")
+--hg.settings:AddOpt("Gameplay","hg_random_appearance", "Enable/Disable Random Appearance")
 hg.settings:AddOpt("Gameplay","hg_cheats", "Enable/Disable Cheats")
 
 

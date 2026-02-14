@@ -2584,8 +2584,15 @@ duplicator.Allow( "homigrad_base" )
 --//
 
 --\\ Custom running anim activity
+	local runHoldTypes = {
+		["normal"] = true,
+		["slam"] = true,
+		["grenade"] = true
+	}
+
 	hook.Add( "CalcMainActivity", "RunningAnim", function( Player, Velocity )
-		if (not Player:InVehicle()) and Player:IsOnGround() and Velocity:Length() > 250 and IsValid(Player:GetActiveWeapon()) and Player:GetActiveWeapon():GetHoldType() == "normal" then
+		local wep = IsValid(Player:GetActiveWeapon()) and Player:GetActiveWeapon()
+		if (not Player:InVehicle()) and Player:IsOnGround() and Velocity:Length() > 250 and wep and runHoldTypes[wep:GetHoldType()] then
 			local isFurry = Player.PlayerClassName == "furry"
 			local anim = ACT_HL2MP_RUN_FAST
 			if Player:IsOnFire() then
