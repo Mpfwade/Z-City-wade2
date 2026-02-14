@@ -82,7 +82,7 @@ function MODE:Intermission()
 				pos = hg.tpPlayer(ctpos, ply, i, 0)
 			end
 
-			timer.Simple(0.1, function()
+			timer.Simple(0.3, function()
                 if not IsValid(ply) then return end
                 local bodygroups = {
                     {0, 3}, 
@@ -106,7 +106,7 @@ function MODE:Intermission()
 				pos = hg.tpPlayer(tpos, ply, i, 0)
 			end
 
-			timer.Simple(0.1, function()
+			timer.Simple(0.3, function()
                 if not IsValid(ply) then return end
                 ply:SetBodygroup(2, 1) 
 				ply:SetBodygroup(0, 1)
@@ -368,7 +368,7 @@ local function spawnswoplayer(ply)
 			ply:SetPlayerClass("wagner")
 			zb.GiveRole(ply, "RF Armed Forces", Color(71,89,0))
 			
-			timer.Simple(0.1, function()
+			timer.Simple(0.3, function()
                 if not IsValid(ply) then return end
             
                 local bodygroups = {
@@ -388,7 +388,7 @@ local function spawnswoplayer(ply)
 			ply:SetPlayerClass("ukr")
 			zb.GiveRole(ply, "UA Armed Forces", Color(89,76,0))
 
-			timer.Simple(0.1, function()
+			timer.Simple(0.3, function()
                 if not IsValid(ply) then return end
                 ply:SetBodygroup(2, 1) 
 				ply:SetBodygroup(0, 1)
@@ -402,7 +402,7 @@ local function spawnswoplayer(ply)
 	GiveEquip( ply, ply:Team() )
 
 	-- Set position AFTER setup is donme
-	timer.Simple(0.1, function()
+	timer.Simple(0.01, function()
 		if not IsValid(ply) then return end
 		
 		local spawnPos = nil
@@ -448,7 +448,7 @@ function MODE:GiveEquipment()
 	self.AZOVPoints = {}
 	table.CopyFromTo(zb.GetMapPoints( "HMCD_SWO_AZOV" ),self.AZOVPoints)
 	
-	timer.Simple(0.1,function()
+	timer.Simple(0.3 ,function()
 
 		for _, ply in ipairs(player.GetAll()) do
 			if not ply:Alive() then continue end
@@ -465,7 +465,7 @@ function MODE:GiveEquipment()
 
 			GiveEquip( ply, ply:Team() )
 
-			timer.Simple(0.1,function()
+			timer.Simple(0.2 ,function()
 				ply.noSound = false
 			end)
 

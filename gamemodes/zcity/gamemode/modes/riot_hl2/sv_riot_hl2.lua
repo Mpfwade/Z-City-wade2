@@ -171,8 +171,8 @@ function MODE:GiveEquipment()
 
         if i == numRioters + 1 then
             ply:Give("weapon_hg_flashbang_tpik")
-        elseif i == numRioters + 2 then
-            local wep = ply:Give("weapon_hk_usp")
+   --[[    elseif i == numRioters + 2 then
+            local wep = ply:Give("weapon_hk_usp") ]]
         end
 
         ply:SelectWeapon("weapon_hg_tonfa")
@@ -180,7 +180,7 @@ function MODE:GiveEquipment()
 end
 
 function MODE:GetTeamSpawn()
-	return zb.TranslatePointsToVectors(zb.GetMapPoints( "HMCD_TDM_T" )), zb.TranslatePointsToVectors(zb.GetMapPoints( "HMCD_TDM_CT" ))
+	return zb.TranslatePointsToVectors(zb.GetMapPoints( "RIOT_TDM_RIOTERS" )), zb.TranslatePointsToVectors(zb.GetMapPoints( "RIOT_TDM_LAW" ))
 end
 
 function MODE:RoundThink()
