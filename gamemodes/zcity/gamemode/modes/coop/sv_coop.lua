@@ -275,6 +275,7 @@ function MODE:GetTeamSpawn()
 	return {getspawnpos(math.random(50))}, {getspawnpos(math.random(50))}
 end
 
+local clr_rebel, clr_medic, clr_grenadier = Color(255, 155, 0), Color(190, 0, 0), Color(190, 90, 0)
 function MODE:GiveEquipment()
     self.COOPPoints = zb.GetMapPoints("HMCD_COOP_SPAWN")
     timer.Simple(0, function()
@@ -319,14 +320,14 @@ function MODE:GiveEquipment()
                 if restored and data then
                     local savedPlayerClass = data.PlayerClass
                     local savedRole = data.Role
-                    local savedRoleColor = data.RoleColor and Color(data.RoleColor[1], data.RoleColor[2], data.RoleColor[3]) or Color(255, 155, 0)
+                    local savedRoleColor = data.RoleColor and Color(data.RoleColor[1], data.RoleColor[2], data.RoleColor[3]) or clr_rebel
                     local savedSubClass = data.SubClass
                     
                     
                     if savedPlayerClass == "Gordon" or savedRole == "Freeman" then
                        
                         ply:SetPlayerClass("Gordon", {bRestored = true})
-                        zb.GiveRole(ply, "Freeman", Color(255, 155, 0))
+                        zb.GiveRole(ply, "Freeman", clr_rebel)
                         hasGordon = true
                     elseif savedSubClass == "medic" then
                         ply.subClass = "medic"
@@ -338,7 +339,7 @@ function MODE:GiveEquipment()
                         else
                             ply:SetPlayerClass(savedPlayerClass or "Rebel", {bNoEquipment = true})
                         end
-                        zb.GiveRole(ply, "Medic", Color(190, 0, 0))
+                        zb.GiveRole(ply, "Medic", clr_medic)
                     elseif savedSubClass == "grenadier" then
                         ply.subClass = "grenadier"
                         grenadierCount = grenadierCount + 1
@@ -349,7 +350,7 @@ function MODE:GiveEquipment()
                         else
                             ply:SetPlayerClass(savedPlayerClass or "Rebel", {bNoEquipment = true})
                         end
-                        zb.GiveRole(ply, "Grenadier", Color(190, 50, 0))
+                        zb.GiveRole(ply, "Grenadier", clr_grenadier)
                     else
                         ply.subClass = nil
                         
@@ -403,7 +404,7 @@ function MODE:GiveDefaultEquipment(ply, playerClass, hasGordon, medicCount, maxM
 
     if not hasGordon and not ply:IsBot() and not savedGordonExists then
         ply:SetPlayerClass("Gordon", {equipment = playerClass})
-        zb.GiveRole(ply, "Freeman", Color(255, 155, 0))
+        zb.GiveRole(ply, "Freeman", clr_rebel)
         wasGordon = true
     else
         local isMedic = false
@@ -424,10 +425,10 @@ function MODE:GiveDefaultEquipment(ply, playerClass, hasGordon, medicCount, maxM
 
         --[[if playerClass == "refugee" or playerClass == "citizen" then
             ply:SetPlayerClass("Refugee", {bNoEquipment = playerClass == "citizen"})
-            zb.GiveRole(ply, isMedic and "Medic" or "Refugee", isMedic and Color(190,0,0) or Color(255, 155, 0))
+            zb.GiveRole(ply, isMedic and "Medic" or "Refugee", isMedic and clr_medic or clr_rebel)
         elseif playerClass == "rebel" then
             ply:SetPlayerClass("Rebel")
-            zb.GiveRole(ply, isMedic and "Medic" or "Rebel", isMedic and Color(190,0,0) or Color(255, 155, 0))
+            zb.GiveRole(ply, isMedic and "Medic" or "Rebel", isMedic and clr_medic or clr_rebel)
         end]]
 
         if playerClass == "refugee" or playerClass == "citizen" then
@@ -437,13 +438,13 @@ function MODE:GiveDefaultEquipment(ply, playerClass, hasGordon, medicCount, maxM
         end
 
         if isMedic then
-            zb.GiveRole(ply, "Medic", Color(190,0,0))
+            zb.GiveRole(ply, "Medic", clr_medic)
         elseif isGrenadier then
-            zb.GiveRole(ply, "Grenadier", Color(190, 50, 0))
+            zb.GiveRole(ply, "Grenadier", clr_grenadier)
         elseif playerClass == "refugee" or playerClass == "citizen" then
-            zb.GiveRole(ply, "Refugee", Color(255, 155, 0))
+            zb.GiveRole(ply, "Refugee", clr_rebel)
         elseif playerClass == "rebel" then
-            zb.GiveRole(ply, "Rebel", Color(255, 155, 0))
+            zb.GiveRole(ply, "Rebel", clr_rebel)
         end
     end
     
@@ -478,17 +479,19 @@ local combineNPCClasses = {
     ["npc_metropolice"] = true,
 }
 
+local zb_coop_maxpossesses = ConVarExists("zb_coop_maxpossesses") and GetConVar("zb_coop_maxpossesses") or CreateConVar("zb_coop_maxpossesses",3,FCVAR_SERVER_CAN_EXECUTE,"Max NPC possession amount in Half-Life 2 CO-OP round",1,100)
+
 local function CanPossessNPC(ply, npc)
     if not IsValid(ply) or not IsValid(npc) then return false end
     if ply:Alive() then return false end
     if CurrentRound().name ~= "coop" then return false end
     if not coop_rts:GetBool() then return false end
-    --if ply.hasUsedRTS and not ply:IsAdmin() then return false end
-    
+    if (ply.RTSUses or 0) >= zb_coop_maxpossesses:GetInt() and not ply:IsAdmin() then return false end
+
     local npcClass = npc:GetClass()
     if friendlyNPCClasses[npcClass] then return true end
     if coop_rts_cmb:GetBool() and combineNPCClasses[npcClass] then return true end
-    
+
     return false
 end
 
@@ -503,6 +506,7 @@ local function GetNPCWeapon(npc)
     return nil
 end
 
+local clr_combine, clr_metrocop = Color(0, 180, 180), Color(0, 100, 255)
 local function PossessNPC(ply, npc)
     if not CanPossessNPC(ply, npc) then return false end
     
@@ -524,7 +528,7 @@ local function PossessNPC(ply, npc)
     ply:SetEyeAngles(Angle(0, npcAngles.y, 0))
     ply:SetHealth(math.max(npcHealth, 50))
     
-    ply.hasUsedRTS = true
+    ply.RTSUses = (ply.RTSUses or 0) + 1
     
     timer.Simple(0, function()
         if not IsValid(ply) then return end
@@ -543,20 +547,20 @@ local function PossessNPC(ply, npc)
         if isCombine then
             if npcClass == "npc_combine_s" then
                 ply:SetPlayerClass("Combine")
-                zb.GiveRole(ply, "Combine", Color(0, 180, 180))
+                zb.GiveRole(ply, "Combine", clr_combine)
             else
                 ply:SetPlayerClass("Metrocop")
-                zb.GiveRole(ply, "Metrocop", Color(0, 100, 255))
+                zb.GiveRole(ply, "Metrocop", clr_metrocop)
             end
         elseif playerClass == "refugee" or playerClass == "citizen" then
             ply:SetPlayerClass("Refugee", {bNoEquipment = playerClass == "citizen"})
-            zb.GiveRole(ply, "Refugee", Color(255, 155, 0))
+            zb.GiveRole(ply, "Refugee", clr_rebel)
         elseif playerClass == "rebel" then
             ply:SetPlayerClass("Rebel")
-            zb.GiveRole(ply, "Rebel", Color(255, 155, 0))
+            zb.GiveRole(ply, "Rebel", clr_rebel)
         else
             ply:SetPlayerClass("Rebel")
-            zb.GiveRole(ply, "Rebel", Color(255, 155, 0))
+            zb.GiveRole(ply, "Rebel", clr_rebel)
         end
         
         ply:Give("weapon_hands_sh")
@@ -584,7 +588,7 @@ hook.Add("PlayerButtonDown", "checks", function(ply, button)
     if CurrentRound().name ~= "coop" then return end
     if not coop_rts:GetBool() then return end
     if ply:Alive() then return end
-    --if ply.hasUsedRTS and not ply:IsAdmin() then return end
+    if (ply.RTSUses or 0) >= zb_coop_maxpossesses:GetInt() and not ply:IsAdmin() then return end
     
     local observeTarget = ply:GetObserverTarget()
     local searchPos
@@ -621,7 +625,7 @@ hook.Add("ZB_RoundStart", "RTSoff", function()
     if CurrentRound().name ~= "coop" then return end
     
     for _, ply in player.Iterator() do
-        ply.hasUsedRTS = false
+        ply.RTSUses = 0
     end
 end)
 
@@ -629,7 +633,7 @@ hook.Add("PostCleanupMap", "RTScleanup", function()
     if CurrentRound().name ~= "coop" then return end
     
     for _, ply in player.Iterator() do
-        ply.hasUsedRTS = false
+        ply.RTSUses = 0
     end
 end)
 
