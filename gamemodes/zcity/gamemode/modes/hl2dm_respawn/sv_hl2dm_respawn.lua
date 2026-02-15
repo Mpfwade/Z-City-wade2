@@ -10,7 +10,7 @@ MODE.ForBigMaps = true
 MODE.OverideSpawnPos = true -- Required for GetPlySpawn to be called on respawn
 
 -- Respawn system configuration
-MODE.RespawnLives = 2 -- Base lives for Combine
+MODE.RespawnLives = 3 -- Base lives for Combine
 MODE.RebelRespawnLives = 4 -- Rebels get one more life
 MODE.RespawnDelay = 5
 
@@ -118,7 +118,8 @@ end
 local function RespawnPlayer(ply, MODE)
     if not IsValid(ply) then return end
     if ply:Team() == TEAM_SPECTATOR then return end
-    
+
+    ply:SetNWString("PlayerRole", "")  -- ADD THIS LINE to clear the old role
     ply.subClass = nil
     
     -- Get spawn position BEFORE spawning
@@ -161,12 +162,14 @@ local function RespawnPlayer(ply, MODE)
     ply:SetSuppressPickupNotices(true)
     ply.noSound = true
 
-    -- Reapply player class based on team (like SMO does)
+   -- Reapply player class based on team (like SMO does)
     if ply:Team() == 1 then
         ply:SetPlayerClass("Combine")
-        zb.GiveRole(ply, "Combine", Color(0, 180, 200))
+        ply:SetNWString("PlayerRole", "Soldier")  -- Set default role for regular soldiers
+        zb.GiveRole(ply, "Soldier", Color(0, 180, 200))
     else
         ply:SetPlayerClass("Rebel")
+        ply:SetNWString("PlayerRole", "Rebel")
         zb.GiveRole(ply, "Rebel", Color(210, 80, 0))
     end
 
@@ -419,8 +422,8 @@ local function Airstrike(pos, normal, ply)
         ent:SetKeyValue("FlightSpeed", 5000)
         ent:SetKeyValue("FlightTime", 5)
         ent:SetKeyValue("SmokeLifetime", 30)
-        ent:SetKeyValue("HeadcrabType", math.random(0, 2))
-        ent:SetKeyValue("HeadcrabCount", 0)
+        ent:SetKeyValue("HeadcrabType", 0)
+        ent:SetKeyValue("HeadcrabCount", 3)
         ent:SetKeyValue("Damage", 200)
         ent:SetKeyValue("DamageRadius", 300)
         ent:Fire("FireCanister")
