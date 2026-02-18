@@ -114,13 +114,19 @@ function MODE:GetPlySpawn(ply)
     end
 end
 
--- Function to respawn a player with their role equipment
 local function RespawnPlayer(ply, MODE)
     if not IsValid(ply) then return end
     if ply:Team() == TEAM_SPECTATOR then return end
 
-    ply:SetNWString("PlayerRole", "")  -- ADD THIS LINE to clear the old role
-    ply.subClass = nil
+    -- DON'T clear subClass - preserve it for respawn!
+    -- ply.subClass = nil  -- REMOVE THIS LINE
+    
+    -- Store the current role/subclass before clearing
+    local preservedRole = ply:GetNWString("PlayerRole", "")
+    local preservedSubClass = ply.subClass
+    local preservedLeader = ply.leader
+    
+    ply:SetNWString("PlayerRole", "")  -- Temporarily clear for respawn
     
     -- Get spawn position BEFORE spawning
     local spawnPos = nil
@@ -129,7 +135,7 @@ local function RespawnPlayer(ply, MODE)
         if MODE.CTPoints and #MODE.CTPoints > 0 then
             local point = MODE.CTPoints[math.random(#MODE.CTPoints)]
             if point and point.pos then
-                spawnPos = point.pos + Vector(0, 0, 10) -- Slightly elevated to avoid getting stuck
+                spawnPos = point.pos + Vector(0, 0, 10)
             end
         end
     else
@@ -150,7 +156,6 @@ local function RespawnPlayer(ply, MODE)
         ply:SetPos(spawnPos)
         ply:SetVelocity(Vector(0, 0, 0))
         
-        -- Set position again in next frame to ensure it sticks
         timer.Simple(0, function()
             if IsValid(ply) then
                 ply:SetPos(spawnPos)
@@ -162,15 +167,25 @@ local function RespawnPlayer(ply, MODE)
     ply:SetSuppressPickupNotices(true)
     ply.noSound = true
 
-   -- Reapply player class based on team (like SMO does)
+    -- Restore subclass and leader status
+    ply.subClass = preservedSubClass
+    ply.leader = preservedLeader
+
+    -- Reapply player class based on team
     if ply:Team() == 1 then
         ply:SetPlayerClass("Combine")
-        ply:SetNWString("PlayerRole", "Soldier")  -- Set default role for regular soldiers
-        zb.GiveRole(ply, "Soldier", Color(0, 180, 200))
+        -- Restore the role
+        if preservedRole and preservedRole ~= "" then
+            ply:SetNWString("PlayerRole", preservedRole)
+            zb.GiveRole(ply, preservedRole, (preservedRole == "Elite" or preservedRole == "Shotgunner" or preservedRole == "Leader") and Color(255, 100, 100) or Color(0, 180, 200))
+        else
+            ply:SetNWString("PlayerRole", "Soldier")
+            zb.GiveRole(ply, "Soldier", Color(0, 180, 200))
+        end
     else
         ply:SetPlayerClass("Rebel")
-        ply:SetNWString("PlayerRole", "Rebel")
-        zb.GiveRole(ply, "Rebel", Color(210, 80, 0))
+        ply:SetNWString("PlayerRole", preservedRole ~= "" and preservedRole or "Rebel")
+        zb.GiveRole(ply, preservedRole ~= "" and preservedRole or "Rebel", Color(210, 80, 0))
     end
 
     local inv = ply:GetNetVar("Inventory", {})
@@ -452,4 +467,20 @@ end)
 hook.Add("PostCleanupMap", "ACD_ResetAirstrikes_Respawn", function()
     ACD_StrikesLeft = {} 
     ACD_NextAirstrikeTime = 0 
+end)
+
+-- Prevent team switching/rebalancing mid-round
+function MODE:PlayerCanJoinTeam(ply, teamid)
+    -- If round is active (not in intermission), don't allow team changes
+    if zb.ROUND_ACTIVE then
+        return false
+    end
+    return true
+end
+
+-- Also prevent auto-team assignment during active rounds
+hook.Add("PlayerInitialSpawn", "HL2DM_Respawn_NoMidGameJoin", function(ply)
+    if zb.ROUND_ACTIVE and GAMEMODE.name == "hl2dm_respawn" then
+        ply:SetTeam(TEAM_SPECTATOR)
+    end
 end)
