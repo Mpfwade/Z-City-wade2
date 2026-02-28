@@ -95,7 +95,9 @@ end)
 
 hook.Add("Should Fake Up", "organism", function(ply)
 	local org = ply.organism
-	if org.otrub or org.fake or org.spine1 >= hg.organism.fake_spine1 or org.spine2 >= hg.organism.fake_spine2 or org.spine3 >= hg.organism.fake_spine3 or (org.lleg == 1 and org.rleg == 1) or (org.blood < 2900) or org.consciousness <= 0.4 then return false end
+	if org.otrub or org.fake or org.spine1 >= hg.organism.fake_spine1 or org.spine2 >= hg.organism.fake_spine2 or org.spine3 >= hg.organism.fake_spine3 or (org.lleg == 1 and org.rleg == 1) and org.berserk <= 0.3 or (org.blood < 2900) or org.consciousness <= 0.4 then
+		return false
+	end
 end)
 
 util.AddNetworkString("organism_send")
@@ -401,7 +403,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 		org.noradrenalineActive = false
 	end
 
-	if org.llegamputated or org.rlegamputated then
+	if (org.llegamputated or org.rlegamputated) and org.berserk <= 0.3 then
 		org.needfake = true
 	end
 

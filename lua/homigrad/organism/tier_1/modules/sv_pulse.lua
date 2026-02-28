@@ -77,7 +77,7 @@ module[2] = function(owner, org, timeValue)
 	if org.pulse < 10 or org.brain >= 0.6 then org.heartstop = true end
 	if org.temperature < 28 or org.temperature > 42 then org.heartstop = true end
 
-	if org.temperature < 34 or org.temperature > 38 then
+	if org.temperature < 34 or org.temperature > 38 or org.blood < 4000 or org.pain > 20 then
 		org.fear = math.max(org.fear, 0)
 	end
 
@@ -116,8 +116,8 @@ module[2] = function(owner, org, timeValue)
 		org.heartstoptime = nil
 	end
 
-	if org.alive and org.heartstoptime and org.heartstoptime + 30 < CurTime() and (org.lastsoundtime or 0) < CurTime() and org.o2.regen > 0 and org.otrub then
-		org.owner:EmitSound("zcitysnd/real_sonar/"..(ThatPlyIsFemale(org.owner) and "female" or "male").."_wheeze"..math.random(5)..".mp3", 50)
+	if org.alive and org.heartstoptime and org.heartstoptime + 30 < CurTime() and (org.lastsoundtime or 0) < CurTime() and org.otrub then
+		org.owner:EmitSound("breathing/agonalbreathing_"..math.random(13)..".wav", 60)
 		--org.owner:EmitSound("breathing/agonalbreathing_"..math.random(13)..".wav", 50)
 		
 		org.lastsoundtime = CurTime() + math.random(25,35)

@@ -274,7 +274,6 @@ hook.Add("radialOptions", "DislocatedJaw", function()
 end)
 
 hook.Add("PostRender", "screenshot_think", function()
-	do return end
 	local org = lply.organism
 	
 	if not org or not org.brain or org.otrub or !lply:Alive() then return end
@@ -314,8 +313,7 @@ local braindeathstart = CurTime() + 20
 local lerpedpart = 0
 local lerpedbrain = 0
 
-hook.Add("Post Pre Post Processing", "ShowScreens", function()
-	do return end
+hook.Add("Post Post Pre Post Processing", "ShowScreens", function()
 	local org = lply.organism
 	
 	if !lply:Alive() then return end
@@ -336,7 +334,7 @@ hook.Add("Post Pre Post Processing", "ShowScreens", function()
 			surface.SetDrawColor(255, 255, 255, math.Clamp(lerpedpart * 50, 0, 255))
 			surface.SetMaterial(screens[curscreen])
 			surface.DrawTexturedRect(0, 0, ScrW(), ScrH())
-
+			
 			DrawToyTown(4, ScrH())
 		else
 			if switch then
@@ -357,7 +355,8 @@ local hg_potatopc
 local old = false
 local tinnitusSoundFactor
 local lerpblood = 0
-hook.Add("RenderScreenspaceEffects", "organism-effects", function()
+local hg_gopro = ConVarExists("hg_gopro") and GetConVar("hg_gopro") or CreateClientConVar("hg_gopro", "0", true, false, "Toggle GoPro-like first-person camera view", 0, 1)
+hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 	local spect = IsValid(lply:GetNWEntity("spect")) and lply:GetNWEntity("spect")
 	local organism = lply:Alive() and lply.organism or (viewmode == 1 and IsValid(spect) and spect.organism) or {}
 	local new_organism = lply:Alive() and lply.new_organism or (viewmode == 1 and IsValid(spect) and spect.new_organism) or {}
@@ -411,7 +410,9 @@ hook.Add("RenderScreenspaceEffects", "organism-effects", function()
 		//lply:ScreenFade( SCREENFADE.IN, clr_black2, 2, 0.5 )
 	end
 	
-	lply:SetDSP(0)
+	--maybe 56, 30?
+	local normaldsp = hg_gopro:GetBool() and 55 or 0
+	lply:SetDSP(normaldsp)
 
 	if otrub or ((fakeTimer and fakeTimer - 2 > CurTime()) and GetConVar("hg_deathfadeout"):GetBool()) then
 		--if otrub or (fakeTimer and fakeTimer - 2 > CurTime()) then
@@ -420,7 +421,7 @@ hook.Add("RenderScreenspaceEffects", "organism-effects", function()
 		--lply:ScreenFade( SCREENFADE.IN, Color(0,0,0,255), 2, 0.5 )
 		
 		if isnumber(zb.ROUND_STATE) and (zb.ROUND_STATE ~= 1) then
-			lply:SetDSP(0)
+			lply:SetDSP(normaldsp)
 			plyCommand(lply,"soundfade "..tinnitusSoundFactor2.." 25")
 		elseif lply:Alive() then
 			lply:SetDSP(17)
@@ -432,7 +433,7 @@ hook.Add("RenderScreenspaceEffects", "organism-effects", function()
 		if ((disorientation and disorientation > 3) or (brain and brain > 0.2) or lply.PlayerClassName == "headcrabzombie" or lply:GetNetVar("headcrab")) and lply:Alive() then
 			lply:SetDSP(130)
 		else
-			lply:SetDSP((lply.suiciding and lply:Alive()) and 130 or 0)
+			lply:SetDSP((lply.suiciding and lply:Alive()) and 130 or normaldsp)
 		end
 	end
 
@@ -718,7 +719,7 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 	if org and org.pulse and org.o2 and org.o2[1] then
 		local pulse = org.heartbeat
 		ent.pulsethink = ent.pulsethink or 0
-		local speed = math.Clamp(org.heartbeat / 60, 1, 120) * (0.4 / math.max(org.o2.curregen, 0.3)) * 0.5 * (org.o2[1] < 8 and 0 or 1)
+		local speed = math.Clamp(org.heartbeat / 60, 1, 4) * (0.4 / math.max(org.o2.curregen, 0.3)) * 0.5 * (org.o2[1] < 8 and 0 or 1)
 		ent.pulsethink = ent.pulsethink + (org.heartbeat > 1 and 1 or 0) * (org.holdingbreath and 0 or 1) * FrameTime() * 4 * (speed) * (org.lungsfunction and 1 or 0)
 
 		local torso = ent:LookupBone("ValveBiped.Bip01_Spine2")
@@ -744,7 +745,8 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 				org.breathed = true
 				local heartbeat = org.heartbeat or 0
 				local muffed
-				
+				local pitch = math.Clamp(heartbeat / 200 * 100, 90, 120) * math.Clamp((org.stamina and org.stamina[1] and (1 + (1 - org.stamina[1] / 180) * 0.2) or 1), 1, 1.2)
+
 				if ent.armors then
 					muffed = ent.armors["face"] == "mask2" or ent.PlayerClassName == "Combine"
 				end
@@ -758,7 +760,7 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 					pitchadd = pitchAddClasses[ply.PlayerClassName]
 				end
 
-				ent:EmitSound("snds_jack_hmcd_breathing/" .. (ThatPlyIsFemale(ent) and "f" or "m") .. math.random(4) .. ".wav", min(heartbeat * 1.0 / ( muffed and 2.5 or 4), 45), math.random(95, 105) + pitchadd, 0.5 * (((org.stamina and org.stamina[1] and org.stamina[1] < 160) or org.heartbeat > 140) and 1 or 0.05), CHAN_AUTO, 0, muffed and 16 or 0)
+				ent:EmitSound("snds_jack_hmcd_breathing/" .. (ThatPlyIsFemale(ent) and "f" or "m") .. math.random(4) .. ".wav", min(heartbeat * 1.0 / ( muffed and 2.5 or 4), 45), pitch + pitchadd, 0.5 * (((org.stamina and org.stamina[1] and org.stamina[1] < 160)) and 1 or org.heartbeat > 140 and 0.25 or 0.05), CHAN_AUTO, 0, muffed and 16 or 0)
 			elseif org.breathed and sin >= 0.1 then
 				org.breathed = false
 			end

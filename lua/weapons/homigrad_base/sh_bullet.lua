@@ -319,7 +319,7 @@ bulletHit = function(ply, tr, dmgInfo, bullet, Weapon)
 		if dist <= 160000 and (math.random(3) == 2 or force >= 30) and tr.Entity:IsWorld() and allowedMats[tr.MatType] then
 			util.Decal("Impact.ShootAdd" .. math.random(shootDecalRand), trPos + trNormal, trPos - trNormal)
 		end
-		if force >= 30 and dist <= 1400000 and (math.random(3) == 2 or force >= 45) then
+		if force >= 30 and dist <= 1400000 and (math.random(3) == 2 or force >= 45) and !tr.Entity:IsRagdoll() then
 			util.Decal("Impact.ShootPowderAdd", trPos + trNormal, trPos - trNormal)
 			--util.DecalEx(powderMat, world, trPos, trNormal, powderClr, 1, 1) uzelezz said that DecalEx crashing the game..
 		end

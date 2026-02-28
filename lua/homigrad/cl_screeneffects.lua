@@ -1,7 +1,7 @@
 local function DrawSunEffect()
 	local sun = util.GetSunInfo()
 	if not sun then return end
-	if not sun.obstruction == 0 or sun.obstruction == 0 then return end
+	if not sun.obstruction == 0 or sun.obstruction == 0 or !sun.direction then return end
 	local sunpos = EyePos() + sun.direction * 1024 * 4
 	local scrpos = sunpos:ToScreen()
 	local dot = (sun.direction:Dot(EyeVector()) - 0.8) * 5
@@ -80,6 +80,8 @@ hook.Add("RenderScreenspaceEffects", "homigrad", function()
 	hook_Run("Post Pre Post Processing")
 
 	hook_Run("Post Post Processing")
+
+	hook_Run("Post Post Pre Post Processing")
 end)
 
 local postprs = hg.postprocess
@@ -229,7 +231,6 @@ local assimilationMat = Material("effects/shaders/zb_assimilation")
 local coldMat = Material("effects/shaders/zb_colda")
 local grainMat = Material("effects/shaders/zb_grain2")
 local heatMat = Material("effects/shaders/zb_heat")
-local zombMat = grainMat -- Material("effects/shaders/zb_zomb")
 
 local PainLerp = 0
 local O2Lerp = 0
@@ -357,34 +358,6 @@ hook.Add("Post Post Processing", "ItHurts", function()
 
 	tempLerp = LerpFT(0.01, tempLerp, org.temperature)
 
-	if lply.PlayerClassName == "headcrabzombie" then
-		render.UpdateScreenEffectTexture()
-
-		heatMat:SetFloat("$c0_x", -CurTime() * 0.1) //time
-		heatMat:SetFloat("$c0_y", 0.1) //intensity (strict)
-		heatMat:SetFloat("$c2_x", 2)
-
-		render.SetMaterial(heatMat)
-		render.DrawScreenQuad()
-
-		render.UpdateScreenEffectTexture()
-		render.UpdateFullScreenDepthTexture()
-		
-		zombMat:SetFloat("$c0_x", CurTime()) -- time
-		zombMat:SetFloat("$c0_y", -1) -- gate
-		zombMat:SetFloat("$c0_z", 1) -- Pixelize
-		zombMat:SetFloat("$c1_x", 12) -- lerp
-		zombMat:SetFloat("$c1_y", 0.2) -- vignette intensity
-		zombMat:SetFloat("$c1_z", 0.3) -- BlurIntensity
-		zombMat:SetFloat("$c2_x", 0.3) -- r
-		zombMat:SetFloat("$c2_y", 0.05) -- g
-		zombMat:SetFloat("$c2_z", 0) -- b
-		zombMat:SetFloat("$c3_x", 0) -- ImageIntensity
-	
-		render.SetMaterial(zombMat)
-		render.DrawScreenQuad()
-	end
-
 	if tempLerp > 38 then
 		local heat = tempLerp - 38
 
@@ -401,7 +374,7 @@ hook.Add("Post Post Processing", "ItHurts", function()
 	local pain = org.pain or 0
 	pain = math.max(pain - 15, 0)
 	local shock = (org.shock or 0) * 1 + (1 - org.consciousness) * 40
-	shockLerp = LerpFT(0.01, shockLerp or 0, shock + (lply.suiciding and 30--[[math.max(0, org.heartbeat - 90)]] or 0))
+	shockLerp = LerpFT(0.01, shockLerp or 0, shock + (lply.suiciding and math.max(0, org.heartbeat - 90) or 0))
 	consciousnessLerp = LerpFT(org.consciousness < (consciousnessLerp or 1) and 1 or 0.01, consciousnessLerp or 1, org.consciousness)
 	-- local immobilization = org.immobilization
 	PainLerp = LerpFT(0.05, PainLerp, math.max(pain * (org.otrub and 0.2 or 1), 0))
@@ -607,6 +580,7 @@ hook.Add("Post Post Processing", "ItHurts", function()
 		lobotomy_index = 0
 	end
 	
+
 	if O2Lerp > 1 then
 		render.UpdateScreenEffectTexture()
 		
