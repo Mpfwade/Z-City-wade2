@@ -301,22 +301,27 @@ players : 1 humans, 0 bots (20 max)
 			local shooterdist = tr.StartPos:Distance(eyePos)
 			local mr = math.random(9)
 
-			if shooterdist < 200 and not IsLookingAt(self:GetOwner(),eyePos) then return end
+			if not IsLookingAt(self:GetOwner(),eyePos) then return end
 			local SND = subsonic and "weapons/bullets/fx/subsonic_0" .. mr .. ".wav"
 				or bullet.Damage >= 50 and "cracks/" .. "heavy/heav" .. "_crack_0" .. mr .. ".ogg"
 				or bullet.Damage >= 30 and "cracks/" .. "medium/med" .. "_crack_0" .. mr .. ".ogg"
 				or "cracks/" .. "light/light" .. "_crack_0" .. mr .. ".ogg"
 
 			if dist < 180 then
-				timer.Simple(0.01,function()
-					EmitSound("weapons/bullets/fx/subsonic_0" .. mr .. ".wav", pos - tr.Normal * 25, 0, CHAN_AUTO, 1, 55)
+				timer.Simple(0.02,function()
+					EmitSound("weapons/bullets/fx/subsonic_0" .. mr .. ".wav", pos - tr.Normal * 25, 0, CHAN_ITEM, 1, 155)
 				end)
-				-- EmitSound(SND, pos - tr.Normal * 25, 0, CHAN_AUTO, 1, 65) 
-			end
-			if dist > 120 then return end
-			if !subsonic then
-				EmitSound(SND, pos - tr.Normal * 25, 0, CHAN_AUTO, 1, 75)
-			end
+				if !subsonic then
+					EmitSound(SND, pos - tr.Normal * 25, 0, CHAN_ITEM, 1, 155)
+					EmitSound(SND, pos - tr.Normal * 25, 0, CHAN_WEAPON, 1, 155)
+					EmitSound(SND, pos - tr.Normal * 25, 0, CHAN_REPLACE, 1, 155)
+					EmitSound(SND, pos - tr.Normal * 25, 0, CHAN_BODY, 1, 155)
+				end
+			else return end
+			-- if dist > 120 then return end
+			-- if !subsonic then
+			-- 	EmitSound(SND, pos - tr.Normal * 25, 0, CHAN_AUTO, 1, 75)
+			-- end
 
 			dist = dist / math.abs((tr.HitPos - tr.StartPos):GetNormalized():Dot((tr.StartPos - eyePos):GetNormalized()))
 			dist = math.Clamp(1 / dist, 0.05,0.25)
@@ -329,7 +334,7 @@ players : 1 humans, 0 bots (20 max)
 			anguse[1] = -ang_pitch / (dist * 30)
 
 			local badass = lply.organism and lply.organism.recoilmul or 1
-			local bulletdmg = math.max(bullet.Damage/25,1)
+			local bulletdmg = math.max(bullet.Damage / 15,1)
 			ViewPunch(anguse * badass * bulletdmg)
 			ViewPunch2((anguse * badass * bulletdmg)/-2)
 			Suppress((dist * 45) * badass * bulletdmg)
@@ -384,7 +389,7 @@ players : 1 humans, 0 bots (20 max)
 				DrawColorModify(colormodify)
 			end
 
-			if !hg_potatopc:GetBool() then DrawToyTown(fraction,ScrH() * fraction / 1.5) end
+			if !hg_potatopc:GetBool() and fraction > 0.1 then DrawToyTown(2,math.min(math.ease.InBack(fraction),0.85) * ScrH() * force / 10) end
 
 		end)
 
@@ -574,6 +579,13 @@ players : 1 humans, 0 bots (20 max)
 		--checkcd = CurTime() + 1
 		local entities = ents_FindByClass("prop_ragdoll")
 		table_Add(entities, player_GetAll())
+
+		local orgents = {}
+		for ent in pairs(hg.organism_ents) do
+			if !IsValid(ent) then hg.organism_ents[ent] = nil continue end
+
+			table.insert(entities, ent)
+		end
 
 		hg.seenents = {}
 		hg.seenents2 = {}
@@ -926,5 +938,102 @@ players : 1 humans, 0 bots (20 max)
 		timer.Remove("StormFox2.Effect.BreathT")
 
 		hook.Remove("Think","RemoveSF2_breath")
+	end)
+--//
+
+--\\ Flash effect
+	hook.Add("Player_Death","fixEyeAngles",function(ply)
+		timer.Simple(0.1,function()
+			if IsValid(ply) then
+				local ang = ply:EyeAngles()
+				ang[3] = 0
+				ply:SetEyeAngles(ang)
+			end
+		end)
+	end)
+
+	hg.flashes = {}
+	local tab = {}
+
+	local blackout_mat = Material("sprites/mat_jack_hmcd_narrow")
+
+	function hg.AddFlash(eyepos, dot, pos, time, size)
+		time = time or 20
+		size = size or 1000--pixels
+		size = size / math.max(pos:Distance(eyepos) / 64,0.01) * (dot^2)
+		local taint = math.max(200 - size,0) / 200 * time * 0.9
+		local scr = pos:ToScreen()
+
+		table.insert(hg.flashes,{x = scr.x, y = scr.y, time = CurTime() + time - taint, lentime = time, size = size})
+	end
+
+	local flash
+	local mat = Material("sprites/orangeflare1_gmod")
+	local mat2 = Material("sprites/glow04_noz")
+
+	amtflashed = 0
+	amtflashed2 = 0
+	
+	hook.Add("Player_Death","huyhuyhuy",function(ply)
+		if ply == LocalPlayer() then
+			hg.flashes = {}
+			amtflashed = 0
+			amtflashed2 = 0
+		end
+	end)
+
+	hook.Add("PreCleanupMap", "noflashesforyouMreowe", function()
+		hg.flashes = {}
+		amtflashed = 0
+		amtflashed2 = 0
+	end)
+
+	hook.Add("Post Post Pre Post Processing","flasheseffect",function()
+		if !lply:Alive() then
+			if !next(hg.flashes) then
+				hg.flashes = {}
+			end
+
+			amtflashed = 0
+			amtflashed2 = 0
+		end
+		if (#hg.flashes <= 0) and (amtflashed2 <= 0) then return end
+		amtflashed = 0
+		for i = 1,#hg.flashes do
+			flash = hg.flashes[i]
+
+			if (flash.time or 0) < CurTime() then table.remove(hg.flashes[i]) continue end
+
+			local animpos = (flash.time - CurTime()) / flash.lentime
+			local size = flash.size
+
+			flash.animpos = animpos
+
+			amtflashed = amtflashed + animpos * size / 5000
+		end
+		
+		amtflashed = amtflashed + amtflashed2
+		amtflashed2 = math.min(math.Approach(amtflashed2, 0, FrameTime() / 20),2)
+		
+		if amtflashed < 0.8 then
+			tab["$pp_colour_brightness"] = 0 - math.max(amtflashed - 0.1,0)
+			DrawColorModify(tab)
+		end
+
+		//amtflashed = math.max(amtflashed - math.ease.InOutCubic(math.max(0, math.sin(CurTime() * 1) - 0.6) / 0.4),0)
+
+		for i = 1, #hg.flashes do
+			flash = hg.flashes[i]
+			
+			local animpos = flash.animpos
+			local size = flash.size
+
+			local huy = (1 - animpos) * -100
+			surface.SetMaterial(mat)
+			surface.SetDrawColor(255, 255, 255, (animpos * 255 + math.Rand(-10,10) * animpos) * (0.5 / #hg.flashes) * (amtflashed < 0.8 and 1.5 or 1))
+			surface.DrawTexturedRect(flash.x - size / 2 + huy, flash.y - size / 2 + huy, size, size)
+			surface.SetMaterial(mat2)
+			surface.DrawTexturedRect(flash.x - size / 2 + huy, flash.y - size / 2 + huy, size, size)
+		end
 	end)
 --//

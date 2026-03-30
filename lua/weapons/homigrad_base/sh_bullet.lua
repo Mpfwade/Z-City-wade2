@@ -37,11 +37,21 @@ local effect = {
 	[MAT_GLASS] = {"glass",1},
 }
 
-local bulletHit
---local hg_bulletholes = GetConVar("hg_bulletholes") or CreateClientConVar("hg_bulletholes", "150", true, false, "0-500, amount of bullet hole effects (r6s-like)", 0, 500)
-local timer, util, math, IsValid, WorldToLocal, Vector, sound, EffectData, game = timer, util, math, IsValid, WorldToLocal, Vector, sound, EffectData, game
+if SERVER then
+	hg.bulletholes = hg.bulletholes or {}
 
-local function callbackBullet(self, tr, dmg, force, bullet)
+	hook.Add("PostCleanupMap", "cleanupholes", function()
+		hg.bulletholes = {}
+
+		SetNetVar("BulletHoles", hg.bulletholes)
+	end)
+end
+
+local bulletHit
+local timer, util, math, IsValid, WorldToLocal, Vector, sound, EffectData, game = timer, util, math, IsValid, WorldToLocal, Vector, sound, EffectData, game
+local hg_bulletholes = CreateConVar("hg_bulletholes", "0", FCVAR_ARCHIVE + FCVAR_NOTIFY + FCVAR_REPLICATED, "Enable R6S bulletholes feature", 0, 1)
+
+local function callbackBullet(self, tr, dmg, force, bullet, penetration)
 	if CLIENT then return end
 	if not bullet then return end
 	bullet.limit_ricochet = bullet.limit_ricochet or 0
@@ -57,7 +67,7 @@ local function callbackBullet(self, tr, dmg, force, bullet)
 	
 	-- all the way through
 	--print(ApproachAngle > MaxRicAngle * 0.7  )
-	if ApproachAngle > MaxRicAngle * 1 then--or tr.Entity:IsVehicle() then
+	if ApproachAngle > MaxRicAngle * 1 or tr.Entity:IsVehicle() then
 		local Pen = (bullet.Penetration or 5) * 3 or dmg
 		local MaxDist, SearchPos, SearchDist, Penetrated = math.min(Pen / hardness * 0.4, 100), hitPos, 5, false
 		
@@ -75,43 +85,17 @@ local function callbackBullet(self, tr, dmg, force, bullet)
 				SearchDist = SearchDist + 5
 			end
 		end
-		
-		if CLIENT then
-			if Penetrated then				
-				local ent = IsValid(tr.Entity) and tr.Entity or Entity(0)
-				--if #hg.bulletholes > hg_bulletholes:GetInt() then table.remove(hg.bulletholes,1) table.remove(hg.bulletholes,1) end
-				local hitPos2,dir2 = WorldToLocal(hitPos,dir:Angle(),ent:GetPos(),ent:GetAngles())
-				local _,hitNormal2 = WorldToLocal(hitPos,hitNormal:Angle(),ent:GetPos(),ent:GetAngles())
-				--table.insert(hg.bulletholes,{hitPos2,dir2,SearchDist,hitNormal2,Pen,ent})
-				local hitPos2,dir2 = WorldToLocal(hit.HitPos,(-dir):Angle(),ent:GetPos(),ent:GetAngles())
-				local _,hitNormal2 = WorldToLocal(hit.HitPos,hit.HitNormal:Angle(),ent:GetPos(),ent:GetAngles())
-				--table.insert(hg.bulletholes,{hitPos2,dir2,SearchDist,hitNormal2,Pen,ent})
-				hg.addBulletHoleEffect(hitPos)
-				hg.addBulletHoleEffect(hit.HitPos)
-				--return true
-			end
-			--return false
+
+		if tr.Entity:IsVehicle() then
+			Penetrated = penetration
 		end
-		
-		--print(Penetrated)
-		if Penetrated then--or tr.Entity:IsVehicle() then
-			--[[self:FireLuaBullets({
-				Attacker = self:GetOwner(),
-				Damage = 0,
-				Force = 0,
-				Num = 1,
-				Tracer = 0,
-				TracerName = "nil",
-				Dir = -dir,
-				Spread = Vector(0, 0, 0),
-				Src = SearchPos + dir,
-				DisableLagComp = true,
-				Filter = {},
-				Distance = SearchPos
-				--Penetration = bullet.Penetration,
-				--Diameter = bullet.Diameter 
-				--Callback = bulletHit
-			},true)--]]
+
+		if CLIENT and Penetrated then
+			hg.addBulletHoleEffect(hitPos)
+			hg.addBulletHoleEffect(hit.HitPos)
+		end
+
+		if Penetrated then
 			util.Decal("Impact.Concrete",SearchPos + dir*5, SearchPos - dir*15)
 			timer.Simple(0.15,function()
 				if effect[tr.MatType] then
@@ -122,6 +106,18 @@ local function callbackBullet(self, tr, dmg, force, bullet)
 					util.Effect("zippy_impact_"..effect[tr.MatType][1],effectdata2)
 				end
 			end)
+
+			local filter = {}
+			if tr.Entity:IsVehicle() then
+				filter = {tr.Entity}
+
+				if tr.Entity.seats then
+					for i, seat in pairs(tr.Entity.seats) do
+						table.insert(filter, seat)
+					end
+				end
+			end
+
 			local tBullet = {
 				Attacker = IsValid(self) and IsValid(self:GetOwner()) and self:GetOwner() or self,
 				Damage = dmg * 0.65,
@@ -131,10 +127,10 @@ local function callbackBullet(self, tr, dmg, force, bullet)
 				TracerName = "nil",
 				Dir = dir,
 				Spread = vector_origin,
-				Src = SearchPos + dir,
+				Src = tr.Entity:IsVehicle() and hitPos or (SearchPos + dir),
 				Callback = bulletHit,
 				DisableLagComp = true,
-				Filter = {},
+				Filter = filter,
 				Penetration = bullet.Penetration,
 				Diameter = bullet.Diameter,
 				penetrated = bullet.penetrated + 1,
@@ -148,12 +144,65 @@ local function callbackBullet(self, tr, dmg, force, bullet)
 			self.bullet = tBullet
 			
 			self:FireLuaBullets( tBullet )
-			
+
+			if hg_bulletholes:GetBool() then
+				local ent = IsValid(tr.Entity) and tr.Entity or Entity(0)
+								
+				local hitPos2, dir2 = WorldToLocal(hitPos, dir:Angle(), ent:GetPos(), ent:GetAngles())
+				local _, hitNormal2 = WorldToLocal(hitPos, hitNormal:Angle(), ent:GetPos(), ent:GetAngles())
+				
+				local size = bullet.Diameter / 25.4 * math.Rand(2, 4) * math.Rand(1, (self.NumBullet or 1))
+				local dontadd = false
+				for i = 1, #hg.bulletholes do
+					if hitPos2:IsEqualTol(hg.bulletholes[i][1], size * 1.414) then --sqrt of 2, cuz it's a square
+						local lerp = size / (hg.bulletholes[i][5] + size)
+						--hg.bulletholes[i][1] = LerpVector(lerp, hitPos2, hg.bulletholes[i][1])
+						--hg.bulletholes[i][5] = math.min(3, (size + hg.bulletholes[i][5]) * 0.9)
+						
+						if hg.bulletholes[i + 1] then
+							--hg.bulletholes[i + 1][5] = math.min(3, (size + hg.bulletholes[i + 1][5]) * 0.9)
+						end
+
+						dontadd = true
+						break
+					end
+				end
+				
+				if !dontadd then
+					local dist = hitPos:Distance(hit.HitPos)
+					table.insert(hg.bulletholes, {hitPos2, dir2, dist, hitNormal2, size, ent})
+					
+					local hitPos2, dir2 = WorldToLocal(hit.HitPos, (-dir):Angle(), ent:GetPos(), ent:GetAngles())
+					local _, hitNormal2 = WorldToLocal(hit.HitPos, hit.HitNormal:Angle(), ent:GetPos(), ent:GetAngles())
+					table.insert(hg.bulletholes, {hitPos2, dir2, dist, hitNormal2, size, ent})
+
+					if hgIsDoor(ent) then -- open the areaportal so it can be seen through
+						for i, enta in ipairs(ents.FindByClass("func_areaportal")) do
+							if enta:GetInternalVariable("target") == ent:GetName() then
+								enta:SetKeyValue("target", "")
+								enta:Fire("Open")
+								-- that door is now always "open"
+								-- fuck your optimisation mr mapping guy!!!
+								break
+							end
+						end
+					end
+
+					if #hg.bulletholes > 160 then
+						table.remove(hg.bulletholes, 1)
+						table.remove(hg.bulletholes, 1)
+					end
+				end
+
+				SetNetVar("BulletHoles", hg.bulletholes, nil, true)
+			end
+
 			local tr = util.TraceLine( {
 				start = SearchPos + dir,
 				endpos = SearchPos + dir * 10000,
 				mask = MASK_SHOT
 			} )
+
 			timer.Simple(0.1,function()
 				local effectdata1 = EffectData()
 				effectdata1:SetOrigin(tr.HitPos)
@@ -233,24 +282,12 @@ end
 
 local hg_potatopc
 
-local hands = {
-	[2] = true,
-	[3] = true,
-	[4] = true,
-	[5] = true,
-	[6] = true,
-	[7] = true,
-}
+local shootDecals, shootDecalRand = {}, 1
+for i = 1, 5 do
+	local mat = "decals/zcity/powder_impact_" .. i
+	table.insert(shootDecals, mat)
+	game.AddDecal("Impact.ShootAdd" .. i, mat)
 
-local shootDecals, shootDecalRand = {
-	--"decals/metal/shot6",
-	--"decals/metal/shot7",
-	"decals/bigshot2",
-	"decals/bigshot4",
-	"decals/bigshot5",
-}, 1
-for i, decal in ipairs(shootDecals) do
-	game.AddDecal("Impact.ShootAdd" .. i, decal)
 	shootDecalRand = i
 end
 
@@ -284,7 +321,6 @@ local function gasInertia(pos, force, dir, self, tr)
 	end
 end
 
-local powderMat, powderClr, world = Material("decals/burn01a"), Color(255, 255, 255, 150), game.GetWorld()
 local allowedMats = {
 	[MAT_CONCRETE] = true,
 	[MAT_METAL] = true
@@ -294,43 +330,36 @@ bulletHit = function(ply, tr, dmgInfo, bullet, Weapon)
 	local inflictor = IsValid(ply) and not ply:IsNPC() and ply.GetActiveWeapon and ply:GetActiveWeapon() or dmgInfo:GetInflictor()
 	local dmg, force = dmgInfo:GetDamage(), dmgInfo:GetDamage()--dmgInfo:GetDamageForce():Length()
 
-	if IsValid(ply) and IsValid(ply.FakeRagdoll) and tr.Entity == ply.FakeRagdoll and hands[hg.realPhysNum(ply.FakeRagdoll, tr.PhysicsBone)] then
-		return false, false
-	end
-
-	--// uncomment to use default impact effects
-	--[[local effectdata = EffectData()
-	effectdata:SetOrigin( tr.HitPos )
-	effectdata:SetEntity( tr.Entity )
-	effectdata:SetStart( tr.StartPos )
-	effectdata:SetSurfaceProp( tr.SurfaceProps )
-	effectdata:SetDamageType( dmgInfo:GetDamageType() )
-	effectdata:SetHitBox( tr.HitBox )
-	util.Effect( "Impact", effectdata )]]
-
 	local trPos, trNormal, trStart = tr.HitPos, tr.HitNormal, tr.StartPos
+	
 	if tr.MatType == MAT_FLESH then
 		util.Decal("Impact.Flesh", trPos + trNormal, trPos - trNormal)
 	end
 
-	--local force = bullet.Force
-	--if force >= 20 then
-		local dist = trStart:DistToSqr(trPos)
-		if dist <= 160000 and (math.random(3) == 2 or force >= 30) and tr.Entity:IsWorld() and allowedMats[tr.MatType] then
-			util.Decal("Impact.ShootAdd" .. math.random(shootDecalRand), trPos + trNormal, trPos - trNormal)
-		end
-		if force >= 30 and dist <= 1400000 and (math.random(3) == 2 or force >= 45) and !tr.Entity:IsRagdoll() then
-			util.Decal("Impact.ShootPowderAdd", trPos + trNormal, trPos - trNormal)
-			--util.DecalEx(powderMat, world, trPos, trNormal, powderClr, 1, 1) uzelezz said that DecalEx crashing the game..
-		end
+	local dist = trStart:DistToSqr(trPos)
+	if dist <= 160000 and (math.random(3) == 2 or force >= 35) and tr.Entity:IsWorld() and allowedMats[tr.MatType] then
+		util.Decal("Impact.ShootAdd" .. math.random(shootDecalRand), trPos + trNormal, trPos - trNormal)
+		util.ScreenShake(trPos, 3, 1, 1, 128)
+	end
+	
+	-- if force >= 35 and dist <= 1400000 and (math.random(3) == 2 or force >= 45) and !tr.Entity:IsRagdoll() then
+	-- 	util.Decal("Impact.ShootPowderAdd", trPos + trNormal, trPos - trNormal)
+	-- 	util.ScreenShake(trPos, 3, 10, 1, 150)
+	-- end
 
-		gasInertia(trPos, force * 3, -tr.Normal, Weapon, tr)
-		gasInertia(trStart, force * 3, tr.Normal, Weapon, tr)
-	--end
+	-- gasInertia(trPos, force * 3, -tr.Normal, Weapon, tr)
+	-- gasInertia(trStart, force * 3, tr.Normal, Weapon, tr)
+
+	local penetration, dmgmul
+	if tr.Entity:IsVehicle() then
+		penetration, dmgmul = hg.VehiclePenetration(tr.Entity, tr, bullet)
+		
+		dmgInfo:SetDamage(dmgInfo:GetDamage() * dmgmul)
+	end
 
 	timer.Simple(0,function()
 		if not bullet then return end
-		callbackBullet(Weapon or inflictor, tr, dmg, force, bullet)
+		callbackBullet(Weapon or inflictor, tr, dmg, force, bullet, penetration, penmul)
 	end)
 end
 
@@ -480,7 +509,8 @@ function SWEP:GetTrace(bCacheTrace, desiredPos, desiredAng, NoTrace, closeanim)
 	end
 
 	if IsValid(owner) and owner.IsSuperAdmin and owner:IsSuperAdmin() then
-		--debugoverlay.Sphere(trace.HitPos, 1, SERVER and 5 or 0.1, SERVER and Color(255, 0, 0) or Color(0, 255, 0))
+		-- debugoverlay.Line(pos, pos + ang:Forward() * 1000, 0.1, SERVER and Color(255, 0, 0) or Color(0, 0, 255))
+		-- debugoverlay.Sphere(trace.HitPos, 1, SERVER and 5 or 0.1, SERVER and Color(255, 0, 0) or Color(0, 255, 0))
 	end
 
 	return trace, pos, ang
@@ -602,6 +632,13 @@ function SWEP:FireBullet()
 		if IsValid(phys) then
 			phys:ApplyForceOffset(-dir * self.Primary.Force * 5, pos)
 		end
+	else
+		local char = hg.GetCurrentCharacter(owner)
+		local phys = char:GetPhysicsObjectNum(0)
+		
+		if IsValid(phys) then
+			phys:ApplyForceCenter(-dir * math.min(self.Primary.Force, 70) * 40 * (self.NumBullet or 1))
+		end
 	end
 
 	--[[local enta = ents.Create("prop_physics")
@@ -683,9 +720,23 @@ function SWEP:FireBullet()
     bullet.IgnoreEntity = nil
     bullet.Callback = bulletHit
 
+	local filter = {self, self.worldModel}
+	if IsValid(owner) and owner.InVehicle and owner:InVehicle() then
+		local veh = owner:GetVehicle()
+		
+		table.insert(filter, veh)
+		table.insert(filter, veh:GetParent())
+
+		if veh.seats then
+			for i, seat in pairs(veh.seats) do
+				table.insert(filter, seat)
+			end
+		end
+	end
+
     bullet.Speed = ammotype.Speed
 	bullet.Distance = ammotype.Distance or 56756
-	bullet.Filter = {self, self.worldModel}
+	bullet.Filter = filter
 
 	bullet.noricochet = ammotype.noricochet
 	

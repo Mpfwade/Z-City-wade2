@@ -153,6 +153,7 @@ function SWEP:AnimHold()
 	self.holdtype = (self:IsPistolHoldType() and (self:GetButtstockAttack() - CurTime() > -0.5)) and "melee" or self.holdtype
 	--self.holdtype = (!self:IsPistolHoldType() and ply.posture == 2 and "revolver" or self.holdtype)
 	--self.holdtype = self:ReadyStance() and not self:IsPistolHoldType() and "pistol" or self.holdtype
+	self.holdtype = self:IsResting() and "slam" or self.holdtype
 	self:SetHold(self.holdtype)
 
 	local stam = (ply.organism ~= nil and ply.organism.stamina and ply.organism.stamina[1]) or 180
@@ -359,7 +360,7 @@ hook.Add("Bones", "homigrad-lean-bone", function(ply, dtime)
 		hg.IsLocal(ply) and ( (left and right and 0) or (left and 1.3) or (right and -1.3) or 0) or ply:GetNWFloat("PlayerLean", 0)
 	)
 
-	if SERVER then
+	if SERVER and !IsValid(ply.FakeRagdoll) then
 		ply.takeOldLeanStamina = ply.takeOldLeanStamina or 0
 		local leanStamina = math.Round(ply.lean,2)
 

@@ -85,6 +85,7 @@ end
     function ENT:CanWear(entUser)
         local Clothes = entUser:GetNetVar("zc_clothes", {})
         if IsValid(self.WearOwner) then return false end
+
         for _,v in pairs(Clothes) do
             local cloth = Entity(v)
             if !IsValid(cloth) then continue end
@@ -111,6 +112,18 @@ end
 --//
 --\\ Wear Unwear functions
     function ENT:Wear(entUser, bDontChangeMaterials, noChange)
+        if !self.Respawned then -- I'M VERRY SORRY FOR THIS SILLY SHIT, BUT GMOD IS BULLSHIT I CAN'T REMOVE ENT FROM PLAYERS CLEANUP ACTUALY I CAN BUT IS MORE JANKY THAN THAT!!!
+            local class = self:GetClass()
+            local ent = ents.Create(class)
+            if !IsValid(ent) then return end
+            ent.Respawned = true
+            ent:Spawn()
+            ent:Wear(entUser, bDontChangeMaterials, noChange)
+
+            SafeRemoveEntity(self)
+            return
+        end
+
         if !noChange then
             local Clothes = entUser:GetNetVar("zc_clothes", {})
             Clothes[#Clothes + 1] = self:EntIndex()
@@ -149,7 +162,10 @@ end
 
         self:OnWear(entUser)
     end
-    function ENT:OnWear(entUser)   end
+
+    function ENT:OnWear(entUser)
+		--// Write your code here
+	end
 ---------------------------------------------------------------
     function ENT:Unwear(entUser, bDontChangeMaterials, noChange)
         if !noChange then
@@ -180,7 +196,7 @@ end
         self:SetEquiped(false)
 
         timer.Simple(0,function()
-            if !IsValid(self) and !IsValid(entUser) then return end
+            if !IsValid(self) or !IsValid(entUser) then return end
             self:SetPos(entUser:IsPlayer() and hg.eyeTrace(entUser).StartPos or entUser:GetPos())
         end)
         if !noChange then
@@ -197,8 +213,12 @@ end
 
         self:OnUnwear(entUser)
     end
-    function ENT:OnUnwear(entUser)   end
+
+    function ENT:OnUnwear(entUser)
+		--// Write your code here
+	end
 --//
+
 --\\
     function ENT:OnRemove()
         if !IsValid(self.WearOwner) then return end
@@ -206,7 +226,6 @@ end
         self:Unwear(self.WearOwner)
     end
 --//
-
 
 --\\ Render clothes
     local vec = Vector(1,1,1)
@@ -267,7 +286,7 @@ end
 --//
 
 --\\ Transfer items
-    hook.Add("ItemsTransfered","TransferClothes",function(ply, ragdoll)
+    hook.Add("ItemsTransfered", "TransferClothes", function(ply, ragdoll)
         local Clothes = ply:GetNetVar("zc_clothes", {})
         if #Clothes < 1 then return end
 
@@ -325,7 +344,7 @@ end
         local ply = LocalPlayer()
         local organism = ply.organism or {}
 
-        if ply:Alive() and !organism.otrub and hg.GetCurrentCharacter(ply) == ply then
+        if ply:Alive() and !organism.otrub and hg.GetCurrentCharacter(ply) == ply and ply:KeyDown(IN_WALK) then
             local Clothes = ply:GetNetVar("zc_clothes", {})
             if !Clothes or #Clothes < 1 then return end
             local tbl = {function()

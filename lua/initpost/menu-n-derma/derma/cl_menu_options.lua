@@ -55,13 +55,19 @@ hg.settings:AddOpt("Gameplay","hg_gary", "HG GARY")
 hg.settings:AddOpt("Gameplay","hg_deathfadeout", "Death fade out")
 --hg_gary
 --hg_deathfadeout
-hg.settings:AddOpt("Serverside gameplay","hg_toughnpcs", "Tough npcs")
-hg.settings:AddOpt("Serverside gameplay","hg_thirdperson", "Thirdperson (WIP)")
-hg.settings:AddOpt("Serverside gameplay","hg_legacycam", "Legacy camera")
-hg.settings:AddOpt("Serverside gameplay","hg_ragdollcombat", "Ragdoll combat mode")
-hg.settings:AddOpt("Serverside gameplay","hg_movement_stamina_debuff", "Movement stamina debuff")
-hg.settings:AddOpt("Serverside gameplay","hg_furcity", "Furcity")
-hg.settings:AddOpt("Serverside gameplay","hg_appearance_access_for_all", "Appearance full access for all", nil, nil, "bool")
+if not game.IsDedicated() then
+	hg.settings:AddOpt("Serverside gameplay","hg_toughnpcs", "Tough npcs")
+	hg.settings:AddOpt("Serverside gameplay","hg_thirdperson", "Thirdperson (WIP)")
+	hg.settings:AddOpt("Serverside gameplay","hg_legacycam", "Legacy camera")
+	hg.settings:AddOpt("Serverside gameplay","hg_ragdollcombat", "Ragdoll combat mode")
+	hg.settings:AddOpt("Serverside gameplay","hg_movement_stamina_debuff", "Movement stamina debuff")
+	hg.settings:AddOpt("Serverside gameplay","hg_furcity", "Furcity")
+	hg.settings:AddOpt("Serverside gameplay","hg_appearance_access_for_all", "Appearance full access for all", nil, nil, "bool")
+	hg.settings:AddOpt("Serverside gameplay","hg_healanims", "Heal & food animations")
+	hg.settings:AddOpt("Serverside gameplay","hg_aimtoshoot", "DarkRP-like shoot system (aim to shoot)")
+	hg.settings:AddOpt("Serverside gameplay","hg_slings", "Sling system")
+    hg.settings:AddOpt("Serverside gameplay","homicide_traitoramount", "Homicide: Traitor Amount", nil, nil, "int")
+end
 --hg_appearance_access_for_all
 --hg_furcity
 --hg_legacycam
@@ -88,7 +94,7 @@ hg.settings:AddOpt("UI","hg_font", "Change Custom Font", false, true)
 hg.settings:AddOpt("Weapons","hg_weaponshotblur_enable", "Shooting Blur")
 hg.settings:AddOpt("Weapons","hg_dynamic_mags", "Dynamic Ammo Inspect")
 hg.settings:AddOpt("Weapons","hg_zoomsensitivity", "Scope sensitivity")
-hg.settings:AddOpt("Weapons","hg_aiminganim","Aiming anim")
+hg.settings:AddOpt("Weapons","hg_highpitchgunfire", "Toggle high pitched gunfire sounds inside buildings")
 
 hg.settings:AddOpt("View","hg_firstperson_death", "First-Person Death")
 hg.settings:AddOpt("View","hg_fov", "Field Of View")
@@ -143,6 +149,25 @@ function hg.GetConVarType(convar)
 
     return "string"
 end
+
+local function SetConVarValue(convar, value)
+    if not convar then
+        return
+    end
+
+    local name = convar.GetName and convar:GetName()
+    if not name or name == "" then
+        return
+    end
+
+    if isbool(value) then
+        RunConsoleCommand(name, value and "1" or "0")
+        return
+    end
+
+    RunConsoleCommand(name, tostring(value))
+end
+
 local clr_1 = Color(255,255,255,104)
 local clr_2 = Color(122,122,122,104)
 local clr_3 = Color(28,28,28)
@@ -216,10 +241,11 @@ function hg.CreateButton(buttonData, convarName, ParentPanel, yPos)
         
         function toggle:DoClick()
             if convar then
-                convar:SetBool(not convar:GetBool())
+                local newValue = not convar:GetBool()
+                SetConVarValue(convar, newValue)
 
                 surface.PlaySound('glide/headlights_on.wav')
-                targetProgress = convar:GetBool() and 1 or 0
+                targetProgress = newValue and 1 or 0
             end
         end
         
@@ -236,11 +262,11 @@ function hg.CreateButton(buttonData, convarName, ParentPanel, yPos)
         slider:SetMin(min)
         slider:SetMax(max)
         slider:SetDecimals(decimals)
-        slider:SetValue(convar:GetInt())
+        slider:SetValue(decimals > 0 and convar:GetFloat() or convar:GetInt())
         
         function slider:OnValueChanged(val)
             if convar then
-                convar:SetInt(math.Round(val))
+                SetConVarValue(convar, decimals > 0 and math.Round(val, decimals) or math.Round(val))
             end
         end
         
@@ -277,7 +303,7 @@ function hg.CreateButton(buttonData, convarName, ParentPanel, yPos)
         
         function textEntry:OnValueChange(val)
             if convar then
-                convar:SetString(val)
+                SetConVarValue(convar, val)
             end
         end
     end

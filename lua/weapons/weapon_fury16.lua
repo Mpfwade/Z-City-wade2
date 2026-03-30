@@ -45,9 +45,10 @@ SWEP.HolsterSnd = ""
 
 SWEP.showstats = false
 
-local hg_healanims = ConVarExists("hg_font") and GetConVar("hg_healanims") or CreateConVar("hg_healanims", 0, FCVAR_SERVER_CAN_EXECUTE, "Toggle heal/food animations", 0, 1)
+local hg_healanims = ConVarExists("hg_healanims") and GetConVar("hg_healanims") or CreateConVar("hg_healanims", 0, FCVAR_REPLICATED + FCVAR_ARCHIVE, "Toggle heal/food animations", 0, 1)
 
 function SWEP:Think()
+	self:SetBodyGroups("11")
 	if not self:GetOwner():KeyDown(IN_ATTACK) and hg_healanims:GetBool() then
 		self:SetHolding(math.max(self:GetHolding() - 4, 0))
 	end
@@ -106,20 +107,7 @@ if SERVER then
 		entOwner:EmitSound("snd_jack_hmcd_needleprick.wav", 80, math.random(115, 120))
 
 		if org.berserk >= 0.4 then
-			ent:Kill()
-			timer.Simple(0, function()
-				if not IsValid(ent.RagdollDeath) then return end
-				--[[if not isbool(ent) then
-					hook.Run("OnHeadExplode", ent, ent.RagdollDeath)
-				end]]
-
-				Gib_Input(ent.RagdollDeath, ent.RagdollDeath:LookupBone("ValveBiped.Bip01_Head1"))
-				
-				ent.RagdollDeath.organism.headamputated = true
-
-				ent.RagdollDeath.organism.owner.fullsend = true
-				hg.send_bareinfo(ent.RagdollDeath.organism)
-			end)
+			hg.ExplodeHead(ent)
 		end
 
 		org.noradrenaline = org.noradrenaline + 1.25

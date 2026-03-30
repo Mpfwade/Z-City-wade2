@@ -103,30 +103,37 @@ function HGAddView(ply, origin, angles, velLen)
 		local wep = ply:GetActiveWeapon()
 		local inSight = IsValid(wep) and wep.IsZoom and wep:IsZoom()
 
-		breathing_amount = breathing_amount + math.max((math.Clamp(pulse, 0, 80) / 120 / 30 + velLen / 100 - (30 - o2) / 3000), 0)
+		--breathing_amount = breathing_amount + math.max((math.Clamp(pulse, 0, 80) / 120 / 30 + velLen / 100 - (30 - o2) / 3000), 0)
+		local breathing_amount = math.sin((org.pulsethink or 0) + 0.8) * (math.max(((org.heartbeat or 0) / 120 - 1) * 0.05, 0) + math.Clamp((org.stamina and org.stamina[1] and (1 - math.min(1, org.stamina[1] / (org.stamina.max * 0.75))) or 1), 0, 0.5))
 		--walk_amount = walk_amount + velLen / 100
 
 		--[[camera_position_addition[1] = 0
 		camera_position_addition[2] = 0
 		camera_position_addition[3] = 0]]
 		
-		--camera_position_addition[1] = (math.cos(breathing_amount)) * math.Clamp((math.max(pulse / 80,1) - 1) / 2,0,0.5)
-		--camera_position_addition[2] = (math.cos(breathing_amount))* math.Clamp((math.max(pulse / 80,1) - 1) / 2,0,0.5)
-		//camera_position_addition[3] = (math.sin(breathing_amount)) * math.Clamp((math.max(pulse / 80,1) - 1) / 2,0,0.5) * 0.5 * (org.lungsfunction and 1 or 0) * math.max(2 - analgesia, 0) * 0.5
-		
-		--origin:Add(camera_position_addition)
+		camera_position_addition[1] = 0
+		camera_position_addition[2] = 0
+		camera_position_addition[3] = (math.sin(breathing_amount + math.pi)) * 0.5
+
+		local anga2 = ply:GetBoneMatrix(ply:LookupBone("ValveBiped.Bip01_Spine")):GetAngles()---(-angles)
+		anga2:RotateAroundAxis(anga2:Right(), 90)
+		--anga2[1] = 0
+		camera_position_addition:Rotate(anga2)
+
+		origin:Add(camera_position_addition)
 
 		local ang = AngleRand(-0.1, 0.1) * math.Rand(0, math.min(adrenaline, 1)) / 1
-		ang[1] = ang[1] + (math.sin(breathing_amount)) * math.Clamp((math.max(pulse / 80,1) - 1) / 2,0,0.5) / 5 * (org.lungsfunction and 1 or 0) * math.max(2 - analgesia, 0) * 0.5
+		ang[1] = ang[1] + breathing_amount
 		ang[3] = 0
 
-		lerped_ang = LerpFT(0.2, lerped_ang, ang * (inSight and 1 or 1) * math.max(org.recoilmul or 1,0.1))
-		local tmpmul = math.max(36.6 - temp, 0)
-		ang[1] = math.Rand(-tmpmul, tmpmul) / 155
-		ang[2] = math.Rand(-tmpmul, tmpmul) / 155
-		ang[3] = math.Rand(-adrenaline, adrenaline) / 15
+		lerped_ang = LerpFT(0.2, lerped_ang, ang * (inSight and 1 or 1) * math.max(org.recoilmul or 1, 0.1))
+		--local tmpmul = math.max(36.6 - temp, 0)
+		--ang[1] = math.Rand(-tmpmul, tmpmul) / 155
+		--ang[2] = math.Rand(-tmpmul, tmpmul) / 155
+		--ang[3] = math.Rand(-adrenaline, adrenaline) / 15
 		--angles:Add(ang)
-		//ply:SetEyeAngles(ply:EyeAngles() + lerped_ang / 2)
+		//ViewPunch2(ang * -0.05)
+		--ply:SetEyeAngles(ply:EyeAngles() + lerped_ang * 0.1)
 		//angles:Add(ang)
 		//ViewPunch2(lerped_ang * 0.1)
 
@@ -289,7 +296,9 @@ function SpecCam(ply, vec, ang, fov, znear, zfar)
 
 	return view
 end
--- Сделайте чтобы локальный игрок рендерился всегда, у меня не вышло
+
+local hg_coolcamera = ConVarExists("hg_coolcamera") and GetConVar("hg_coolcamera") or CreateConVar("hg_coolcamera", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Cool camera movement", 0, 5)
+
 CalcView = function(ply, origin, angles, fov, znear, zfar)
 	if g_VR and g_VR.active then return end
 	if GetViewEntity() ~= (ply or LocalPlayer()) then return end
@@ -306,7 +315,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 	if drive.CalcView(ply, view) then return view end
 
 	local rlEnt = hg.GetCurrentCharacter(ply)
-	lerpfovadd = LerpFT(0.001, lerpfovadd, (ply:IsSprinting() and rlEnt == ply and rlEnt:GetVelocity():LengthSqr() > 1500 and 10 or 0) - ( ply.organism and (ply.organism and (((ply.organism.immobilization or 0) / 4) - (ply.organism.adrenaline or 0) * 5 - (ply.organism.noradrenaline or 0) * 45)) or 0) / 2 - (ply.suiciding and (ply:GetNetVar("suicide_time",CurTime()) < CurTime()) and (1 - math.max(ply:GetNetVar("suicide_time",CurTime()) + 8 - CurTime(),0) / 8) * 20 or 0))
+	lerpfovadd = LerpFT(0.01, lerpfovadd, (ply:IsSprinting() and rlEnt == ply and rlEnt:GetVelocity():LengthSqr() > 1500 and 10 or 0) - ( ply.organism and (ply.organism and (((ply.organism.immobilization or 0) / 4) - (ply.organism.adrenaline or 0) * 5 - (ply.organism.noradrenaline or 0) * 15)) or 0) / 2 - (ply.suiciding and (ply:GetNetVar("suicide_time",CurTime()) < CurTime()) and (1 - math.max(ply:GetNetVar("suicide_time",CurTime()) + 8 - CurTime(),0) / 8) * 20 or 0))
 	lerpfovadd2 = LerpFT(0.1, lerpfovadd2, zooming and -25 or 0)
 
 	fov = hg_fov:GetInt()
@@ -322,7 +331,12 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 	end
 
 	--angles.roll = (turned and 180 or 0) + lean_lerp * 10
-	
+
+	local vpang = GetViewPunchAngles2() + GetViewPunchAngles3()
+	vpang[3] = 0
+
+
+
 	if IsValid(follow) then
 		return hg.CalcViewFake(ply, origin, angles, fov, znear, zfar)
 	end
@@ -424,8 +438,6 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 	hg.clamp(vel, limit)
 	angles = ply:InVehicle() and ply:GetAimVector():AngleEx(vehicle:GetUp()) or angles
 
-	angles:RotateAroundAxis(angles:Up(),-LookX)
-	angles:RotateAroundAxis(angles:Right(),-LookY)
 	--angles = angles + Angle(LookY,-LookX,0)
 	
 	hg.cam_things(ply,view,angles)
@@ -476,7 +488,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 	view.drawviewer = true--not hullcheck.Hit
 	view.origin = origin
 	view.angles = angles
-	
+
 	--local fixVal = math.min(math.max(angles[1] -30,0),40)/40
 	--fixLerp = LerpFT(.4,fixLerp, fixVal)
 	--local fixBlinkingModel = angles:Forward() * (-8 * fixLerp) + angles:Up()* (2 * fixLerp)
@@ -489,6 +501,16 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 	view.origin, view.angles = HGAddView(ply, view.origin, view.angles, velLen)
 	--end
 	
+	realangle = realangle or lply:EyeAngles()
+
+	if GetCoolCameraBool() then
+		view.angles = realangle + GetViewPunchAngles() * 0.2 + vpang
+		view.angles[3] = view.angles[3] - GetViewPunchAngles4()[3]
+		angles = view.angles
+	end
+
+	view.angles:RotateAroundAxis(view.angles:Up(),-LookX)
+	view.angles:RotateAroundAxis(view.angles:Right(),-LookY)
 	--[[if lply:InVehicle() then
 		local FPersPos =  lply:GetAttachment(lply:LookupAttachment( "eyes" ))
 		view.origin = FPersPos.Pos
@@ -510,18 +532,16 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 		traceBuilder.endpos = view.origin
 		local trace = hg.hullCheck(ply:EyePos() - vector_up * 10,view.origin,ply)
 		view.origin = trace.HitPos
-		local vpang = GetViewPunchAngles2() + GetViewPunchAngles3()
-		vpang[3] = 0
+		
 		view.angles:Add(-vpang)
 		view.angles[3] = view.angles[3] + GetViewPunchAngles4()[3]
 		hook_Run("PostHGCalcView", ply, view)
 		return view
 	end
-	
+
 	view.origin = eyePos
 	view.angles = angles
-	local vpang = GetViewPunchAngles2() + GetViewPunchAngles3()
-	vpang[3] = 0
+
 	view.angles:Add(-vpang)
 	view.angles[3] = view.angles[3] + GetViewPunchAngles4()[3]
 

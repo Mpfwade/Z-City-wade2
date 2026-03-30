@@ -551,20 +551,7 @@ properties.Add( "amputate_limb", {
         local dmgInfo = DamageInfo()
 		if limb == 0 then
 			if SERVER and not ent.noHead then
-				ent:Kill()
-				timer.Simple(0, function()
-					if not IsValid(ent.RagdollDeath) then return end
-					--[[if not isbool(ent) then
-						hook.Run("OnHeadExplode", ent, ent.RagdollDeath)
-					end]]
-
-					Gib_Input(ent.RagdollDeath, ent.RagdollDeath:LookupBone("ValveBiped.Bip01_Head1"))
-					
-					ent.RagdollDeath.organism.headamputated = true
-
-					ent.RagdollDeath.organism.owner.fullsend = true
-					hg.send_bareinfo(ent.RagdollDeath.organism)
-				end)
+				hg.ExplodeHead(ent)
 			end
         elseif limb == 1 then
             hg.organism.AmputateLimb(ent.organism, "larm")

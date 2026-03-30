@@ -1,7 +1,7 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Underground Akm"
+SWEP.PrintName = "Underground AKM"
 SWEP.Author = "Unknown..."
 SWEP.Instructions = "The AKM base used in this build is made of various AK parts from similar guns, it was fucked up, it shoots slower than AKM and also has an extremely strong recoil. It uses a 7.62x39 caliber"
 SWEP.Category = "Weapons - Assault Rifles"

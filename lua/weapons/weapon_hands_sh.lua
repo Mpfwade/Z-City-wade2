@@ -731,7 +731,7 @@ local pickupWhiteList = {
 }
 
 function SWEP:CanPickup(ent)
-	if ent:IsNPC() then return false end
+	if ent:IsNPC() or ent:IsNextBot() then return false end
 	if ent:IsPlayer() then return false end
 	if ent:IsWorld() then return false end
 	local class = ent:GetClass()
@@ -1415,7 +1415,7 @@ function SWEP:PrimaryAttack(forcespecial)
 	end
 
 	if self.IsLocal and self:IsLocal() then
-		ViewPunch(special_attack and Angle(0, 0, 0) or Angle((-1), -(rand and 2 or -2), (rand and 6 or -6)))
+		ViewPunch(special_attack and Angle(0, 0, 0) or Angle((-1), -(rand and 2 or -2), (rand and 8 or -8)))
 		//ViewPunch2(special_attack and Angle(5, -2, 2) or Angle((-1), -(rand and 2 or -2), (rand and 6 or -6)))
 		if special_attack then
 			timer.Simple(0.06, function()

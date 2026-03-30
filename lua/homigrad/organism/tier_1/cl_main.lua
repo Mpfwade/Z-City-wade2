@@ -90,7 +90,7 @@ local function plyCommand(ply,cmd)
 			hg.chat:SetRealAlpha(0)
 
 			timer.Create("otrubhuy", 1, 1, function()
-				if not lply.organism.otrub then lply:ConCommand("soundfade 0 1") end
+				if lply.organism and not lply.organism.otrub then lply:ConCommand("soundfade 0 1") end
 				hg.chat:AnimateRealAlpha(255)
 			end)
 		end
@@ -347,14 +347,11 @@ hook.Add("Post Post Pre Post Processing", "ShowScreens", function()
 	end
 end)
 
-local hurtoverlay = Material("zcity/neurotrauma/damageOverlay.png")
 local blindoverlay = Material("zcity/neurotrauma/blindoverlay.png")
-local addtime = CurTime()
 
 local hg_potatopc
 local old = false
 local tinnitusSoundFactor
-local lerpblood = 0
 local hg_gopro = ConVarExists("hg_gopro") and GetConVar("hg_gopro") or CreateClientConVar("hg_gopro", "0", true, false, "Toggle GoPro-like first-person camera view", 0, 1)
 hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 	local spect = IsValid(lply:GetNWEntity("spect")) and lply:GetNWEntity("spect")
@@ -452,6 +449,8 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 		disorientation = disorientation + 100
 	end
 
+	disorientation = disorientation + amtflashed * 5
+
 	local amount = 1 - math.Clamp(lowpulse + disorientation / 4 + k2 * 2,0,1)
 
 	disorientationLerp = LerpFT(disorientation > disorientationLerp and 1 or 0.01, disorientationLerp, math.max(lply.suiciding and 1.5 or 0, disorientation))
@@ -478,26 +477,7 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 		end
 	end
 
-	if (org.consciousness < 0.7) then
-		lerpblood = LerpFT(0.01, lerpblood or 0, math.Clamp((0.7 - org.consciousness) * 5, 0, 1) * 255)
-		local lowblood = (3600 - blood) / 600
 
-		addtime = addtime + FrameTime() / 6
-		local amt = (math.cos(addtime) + math.sin(addtime * 3) + math.sin(addtime * 2)) / 90
-		local amt2 = (math.sin(addtime) + math.cos(addtime * 5) + math.sin(addtime * 6)) / 90
-		local mat = Matrix({
-			{1 - amt, amt, 0, -amt2 / 2},
-			{amt2, 1 - amt2, 0, -amt / 2},
-			{0, 0, 1, 0},
-			{0, 0, 0, 1},
-		})
-		hurtoverlay:SetMatrix("$basetexturetransform", mat)
-		surface.SetMaterial(hurtoverlay)
-		surface.SetDrawColor(0, 0, 0, lerpblood)
-		surface.DrawTexturedRect(-ScrW() * 2.0, -ScrH() * 2.0, ScrW() * 5, ScrH() * 5)
-		//ViewPunch(Angle(-amt * 1, amt2 * 1,0))
-		//ViewPunch2(Angle(-amt * 1, amt2 * 1,0))
-	end
 	//pain = math.abs(math.cos(CurTime())) * 40
 	if (pain > 0) or (hurt > 0) or (immobilization > 0) or (brain > 0) then
 		local k = ((hurt + immobilization / 15) / 2)
@@ -605,9 +585,10 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 	
 	if IsValid(ent) and ent.Blinking and lply:Alive() then
 		surface.SetDrawColor(0,0,0,255)
-		if amtflashed and amtflashed > 0.1 then
-			surface.DrawRect(-1,-1,ScrW()+1,ent.Blinking * ScrH())
-			surface.DrawRect(-1,ScrH() + 1,ScrW()+1,-ent.Blinking * ScrH())
+		if amtflashed and amtflashed > 0.1 and amtflashed < 0.8 and ent.Blinking > 0.1 then
+			surface.DrawRect(-1, -1,ScrW() + 1,ScrH() + 1)
+			//surface.DrawRect(-1,-1,ScrW()+1,ent.Blinking * ScrH())
+			//surface.DrawRect(-1,ScrH() + 1,ScrW()+1,-ent.Blinking * ScrH())
 		end
 	end
 end)
@@ -702,6 +683,8 @@ local muffedClasses = {
 	["headcrabzombie"] = true
 }
 
+local hg_heartbeat_volume = ConVarExists("hg_heartbeat_volume") and GetConVar("hg_heartbeat_volume") or CreateClientConVar("hg_heartbeat_volume", 1, true, nil, "heartbeat loudness", 0, 4)
+
 hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, ent, time)
 	--local ent = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply
 	--print(ply,ent,ply.organism.owner,ply.new_organism.owner)
@@ -718,16 +701,16 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 
 	if org and org.pulse and org.o2 and org.o2[1] then
 		local pulse = org.heartbeat
-		ent.pulsethink = ent.pulsethink or 0
-		local speed = math.Clamp(org.heartbeat / 60, 1, 4) * (0.4 / math.max(org.o2.curregen, 0.3)) * 0.5 * (org.o2[1] < 8 and 0 or 1)
-		ent.pulsethink = ent.pulsethink + (org.heartbeat > 1 and 1 or 0) * (org.holdingbreath and 0 or 1) * FrameTime() * 4 * (speed) * (org.lungsfunction and 1 or 0)
-
+		org.pulsethink = org.pulsethink or 0
+		local speed = math.Clamp(org.heartbeat / 60, 1, 3.3) * 0.5 * (org.o2[1] < 8 and 0 or 1)
+		org.pulsethink = org.pulsethink + (org.heartbeat > 1 and 1 or 0) * (org.holdingbreath and 0 or 1) * FrameTime() * 5.6 * (speed) * (org.lungsfunction and 1 or 0) * ((org.alive and !ent.headexploded) and 1 or 0)
+		
 		local torso = ent:LookupBone("ValveBiped.Bip01_Spine2")
 		--local chest = ent:LookupBone("ValveBiped.Bip01_Spine1")
 		
 		if torso then
-			if ent:GetPos():Distance(lply:GetPos()) > 450 then return end
-			local sin = (math.sin(ent.pulsethink) + 1) * 0.5 * ((org.alive and !ent.headexploded) and 1 or 0)
+			if ent:GetPos():DistToSqr(lply:GetPos()) > 450 * 450 then return end
+			local sin = (math.sin(org.pulsethink) + 1) * 0.5
 			local amt = 0.05 * sin * math.max(org.pulse / 70, 0.5)
 			
 			local size = 1 + amt
@@ -736,16 +719,19 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 			vecTorso[3] = size
 			
 			ent:ManipulateBoneScale(torso, vecTorso)
+			//ent:ManipulateBoneAngles(torso, Angle(0, amt, 0))
 
 			vecTorso[1] = 0
 			vecTorso[2] = amt * 2
 			vecTorso[3] = 0
 			
 			if sin < 0.1 and org.analgesia <= 1.5 and not org.breathed then
+				org.lastbreathed = CurTime()
 				org.breathed = true
 				local heartbeat = org.heartbeat or 0
 				local muffed
-				local pitch = math.Clamp(heartbeat / 200 * 100, 90, 120) * math.Clamp((org.stamina and org.stamina[1] and (1 + (1 - org.stamina[1] / 180) * 0.2) or 1), 1, 1.2)
+				local pitch = math.Clamp(heartbeat / 200 * 100, 100, 100) * math.Clamp((org.stamina and org.stamina[1] and (1 + (1 - org.stamina[1] / org.stamina.max) * 0.2) or 1), 1, 1.2)
+				local vol = math.Remap(heartbeat, 70, 300, 0, 0.25) + (org.stamina and org.stamina[1] and 1 - org.stamina[1] / org.stamina.max or 0)
 
 				if ent.armors then
 					muffed = ent.armors["face"] == "mask2" or ent.PlayerClassName == "Combine"
@@ -760,14 +746,29 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 					pitchadd = pitchAddClasses[ply.PlayerClassName]
 				end
 
-				ent:EmitSound("snds_jack_hmcd_breathing/" .. (ThatPlyIsFemale(ent) and "f" or "m") .. math.random(4) .. ".wav", min(heartbeat * 1.0 / ( muffed and 2.5 or 4), 45), pitch + pitchadd, 0.5 * (((org.stamina and org.stamina[1] and org.stamina[1] < 160)) and 1 or org.heartbeat > 140 and 0.25 or 0.05), CHAN_AUTO, 0, muffed and 16 or 0)
+				if vol > 1.5 and ply == lply then
+					local amta = (vol - 1.5)
+					local ang1 = Angle(amta * -0.5, 0, 0)
+					local ang2 = Angle(amta * 5, 0, 0)
+
+					--[[ViewPunch4(ang1)
+					--ViewPunch(ang1)
+
+					timer.Simple(speed, function()
+						ViewPunch4(-ang1)
+						--ViewPunch(-ang2)
+					end)--]]
+
+				end
+
+				ply:EmitSound("snds_jack_hmcd_breathing/" .. (ThatPlyIsFemale(ent) and "f" or "m") .. math.random(4) .. ".wav", min(heartbeat * 1.0 / ( muffed and 2.5 or 4), 45), pitch + pitchadd + math.Rand(-2, 2), vol, CHAN_AUTO, 0, muffed and 16 or 0)
 			elseif org.breathed and sin >= 0.1 then
 				org.breathed = false
 			end
 
 			--ent:ManipulateBonePosition(torso, vecTorso)
 
-			--local size = 1 - 0.02 * math.sin(ent.pulsethink)
+			--local size = 1 - 0.02 * math.sin(org.pulsethink)
 			--vecTorso[1] = size
 			--vecTorso[2] = size
 			--vecTorso[3] = size
@@ -785,7 +786,7 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 	local owner = ent
 	
 	local beatsPerSecond = math.max(min(30 / math.max(org.pulse or 70,2), 4), 0.1) * (!hg_old_blood:GetBool() and 0.3 or 1)
-		
+	
 	if org.pulse and org.heartbeat > 30 and (org.lastpulse or 0) + (1 / math.Clamp(org.heartbeat, 1, 600)) * 60 < CurTime() then
 		org.lastpulse = CurTime()
 		local pulse = org.heartbeat or 0
@@ -797,21 +798,23 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 		local cantcheck = org.CantCheckPulse
 		local checkingplayer = (IsValid(carryent) and carryent.organism == ply.organism and !cantcheck and checkpulsebones[carryent:GetBoneName(carryent:TranslateBoneToPhysBone(carrybone))])
 		
-		if dist < 64 * 64 and (ply == lply or checkingplayer) then
+		if dist < 64 * 64 and ((ply == lply and !checkingplayer) or checkingplayer) then
 			local vol = checkingplayer and 2 or ((pain > 60 and ply == lply) and 1 or (pulse > 200 and ((200 - 95) / 50 + 0.12 - (pulse - 200) / 1000) or pulse > 95 and (pulse - 95) / 50 + 0.12 or 0.12))
-			
+			if not checkingplayer then
+				vol = math.Clamp(vol, 0, 0.7) * hg_heartbeat_volume:GetFloat()
+			end
+
 			--ply:EmitSound("heartbeat/heartbeat_single.wav", 55, 60, vol)
 			if ent:GetVelocity():LengthSqr() < 10 then
-				sound.Play("heartbeat/heartbeat_single.wav", ply:EyePos(), 55, 60, vol)
+				sound.Play("heartbeat/heartbeat_single.wav", ply:EyePos(), 55, 60, vol * 1.5)
 			else
 				EmitSound("heartbeat/heartbeat_single.wav", ply:EyePos(), ply:EntIndex(), CHAN_AUTO, vol, 55, nil, 60)
 			end
 		end
 	end
 
-	--why?
-
-	if org.pulse and (ent.pulse_breathe.lastbreathe or 0) < CurTime() and org.o2 and org.o2[1] and (org.heartbeat > 80 or (org.o2[1] < 15 and ent:WaterLevel() == 3)) and org.lungsfunction and not org.holdingbreath and org.timeValue then
+	--why? because
+	if org.pulse and (ent.pulse_breathe.lastbreathe or 0) < CurTime() and org.lastbreathed and org.lastbreathed + 5 < CurTime() then
 		local heartbeat = org.heartbeat or 0
 		ent.pulse_breathe.lastbreathe = CurTime() + (1 / math.Clamp(org.heartbeat + (org.o2[1] - 30) * 1, 1, 120)) * 90 + ( org.o2[1] < 20 and 5 or 0)
 		
@@ -823,7 +826,7 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 					muffed = ent.armors["face"] == "mask2" or ent.PlayerClassName == "Combine"
 				end
 				
-				if org.o2.curregen <= org.timeValue * 0.5 and org.o2[1] < 20 then
+				if org.timeValue and org.o2.curregen <= org.timeValue * 0.5 and org.o2[1] < 20 then
 					ply:EmitSound("zcitysnd/real_sonar/"..(ThatPlyIsFemale(ent) and "fe" or "").."male_wheeze"..math.random(5)..".mp3", 40, nil, nil, nil, nil, 1)
 				end
 			else
@@ -956,14 +959,6 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 end)
 
 local grub = Model("models/grub_nugget_small.mdl")
---ValveBiped.Bip01_R_Hand
---ValveBiped.Bip01_R_Forearm
---ValveBiped.Bip01_R_Foot
---ValveBiped.Bip01_R_Thigh
---ValveBiped.Bip01_R_Calf
---ValveBiped.Bip01_R_Shoulder
---ValveBiped.Bip01_R_Elbow
-
 local vecalmostzero = Vector(0.01, 0.01, 0.01)
 
 local modelPlacements = {
@@ -1041,7 +1036,6 @@ function hg.GoreCalc(ent, ply)
 		if !IsValid(headboom_mdl) then
 			headboom_mdl = ClientsideModel(grub)
 			headboom_mdl:SetNoDraw(true)
-			--headboom_mdl:SetModel("models/grub_nugget_small.mdl")
 			headboom_mdl:SetSubMaterial(0, "models/flesh")
 			headboom_mdl:SetModelScale(0.8)
 		end
